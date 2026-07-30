@@ -43,7 +43,7 @@ Auto Auth Filler is a browser extension that automatically detects and fills OTP
 3. Approve the permission request. The extension only asks for `gmail.readonly` (it cannot send or modify emails).
 4. You're done. The extension will now automatically search your Gmail inbox for OTP codes whenever it detects a verification field on a webpage.
 
-> Your OAuth token is stored locally in session storage and is automatically cleared when the browser closes.
+> Your access token is stored in session storage and cleared when the browser closes. The refresh token is stored in local storage so you stay signed in across restarts; "Sign out" deletes it and revokes the grant with Google.
 
 ---
 
@@ -87,6 +87,6 @@ To publish this extension under your own Google account, you need to register yo
 
 - The extension only reads Gmail with the **`gmail.readonly`** scope.
 - It cannot send, delete, or modify any emails.
-- Your access token is stored only in local browser session storage and is cleared when the browser closes.
+- Your access token is stored in browser session storage and cleared when the browser closes; the refresh token is stored in local storage so sign-in survives a restart. Neither is ever transmitted anywhere except to Google.
 - No data is sent to any external server. All processing happens locally.
 - Email bodies are never stored. They are read in memory and immediately discarded after OTP extraction.

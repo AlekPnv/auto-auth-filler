@@ -29,6 +29,19 @@
 // project, not because leaking it would compromise an account. The OAuth
 // *client secret* is what must never be committed, and this extension has none.
 
+// About CLIENT_SECRET: Google's "Web application" client type requires it at
+// the token endpoint even when PKCE is used - verified by request, the token
+// endpoint answers "client_secret is missing" without it. Firefox forces this
+// client type, because chrome.identity.getRedirectURL() returns an https URI
+// and only a Web application client accepts one.
+//
+// This means the secret ships inside the packaged extension and is readable by
+// anyone who unpacks it. That is unavoidable for this client type and is why
+// the flow also uses PKCE, which stops an intercepted authorization code from
+// being redeemed by someone else. Keep the blast radius small: use a client
+// dedicated to this extension, never one shared with a server-side app.
+
 globalThis.AAF_CONFIG = {
   CLIENT_ID: "YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE",
+  CLIENT_SECRET: "YOUR_GOOGLE_OAUTH_CLIENT_SECRET_HERE",
 };

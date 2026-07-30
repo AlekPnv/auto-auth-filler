@@ -5,6 +5,21 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-07-30
+
+### Changed
+
+- **Authentication moved from the OAuth implicit flow to authorization code with PKCE.** The implicit flow returns only an access token, never a refresh token, so the consent screen reappeared roughly every hour. The extension now exchanges an authorization code for an access token *and* a refresh token, and renews silently from then on: you sign in once. The PKCE challenge is SHA-256 and verified against the RFC 7636 test vector; a random `state` value is checked on return to reject a mismatched redirect.
+- Token storage split to match the new lifetimes. The access token stays in session storage and is cleared when the browser closes; the refresh token is kept in local storage, because sign-in that does not survive a restart defeats the purpose. **Sign out** now deletes both and revokes the grant with Google, so the extension also disappears from the account's permissions page.
+- A 401 during a Gmail request now discards only the access token and renews it, instead of clearing everything and forcing a new consent screen.
+- `CHECK_AUTH` treats a stored refresh token as signed in. Previously the popup reported "Not signed in" after every browser restart, because it only looked at the session-scoped access token.
+- `config.js` gained `CLIENT_SECRET`. Google's Web application client type requires it at the token endpoint even with PKCE — confirmed by request, the endpoint answers `client_secret is missing` without it. Firefox forces that client type, because `chrome.identity.getRedirectURL()` returns an https URI and only a Web application client accepts one. The secret therefore ships inside the package; PKCE is what stops an intercepted code from being redeemed by anyone else.
+
+### Migration
+
+- Copy the client secret from Google Cloud Console into `config.js` before loading this version, or sign-in will fail with a readable configuration error.
+- Existing users are signed out once, because tokens from the implicit flow cannot be upgraded to refresh tokens. The next sign-in is the last one they will need.
+
 ## [3.1.1] - 2026-07-30
 
 ### Fixed
@@ -49,6 +64,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.2.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.2.0
 [3.1.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.1.1
 [3.1.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.1.0
 [3.0.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.0.0

@@ -79,7 +79,7 @@ Open the settings page from the popup footer.
 ## Privacy and permissions
 
 - The only Gmail scope requested is `gmail.readonly`. The extension cannot send, delete, or modify any email.
-- The OAuth access token is kept in the browser's session storage (or local storage as a fallback on older Firefox versions) and is cleared automatically when the browser closes.
+- The short-lived access token is kept in session storage and is cleared when the browser closes. The refresh token is kept in the browser's local storage, because it has to survive a restart — that is what keeps you signed in instead of facing a consent screen every hour. Both are removed, and the grant is revoked with Google, when you press **Sign out**.
 - No data leaves your browser. There is no external server, analytics, or telemetry of any kind.
 - Email bodies are processed in memory only, for as long as it takes to look for a code, and are never written to disk or logged.
 

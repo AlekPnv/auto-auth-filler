@@ -16,11 +16,16 @@ if (!globalThis.AAF_CONFIG && typeof importScripts === "function") {
 }
 
 const CLIENT_ID = globalThis.AAF_CONFIG?.CLIENT_ID ?? "";
+const CLIENT_SECRET = globalThis.AAF_CONFIG?.CLIENT_SECRET ?? "";
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
 const TOKEN_LIFETIME_MS = 3600 * 1000;
 const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
-// session storage clears automatically on browser close; local is the fallback for Firefox < 115
+// The short-lived access token lives in session storage, which empties when the
+// browser closes. The refresh token has to outlive that, so it goes to local
+// storage - otherwise every restart would mean a fresh consent screen.
 const tokenStore = chrome.storage.session ?? chrome.storage.local;
 
 // MV3 service workers can be killed and revived at any time, so listeners must be
@@ -55,74 +60,205 @@ async function getStoredToken() {
   return null;
 }
 
-async function saveToken(token, expiresInSec = null) {
-  // Google's redirect normally includes expires_in (seconds); fall back to the
-  // default lifetime only if it is missing or looks unreasonable
+// Google returns expires_in (seconds); fall back to the default lifetime only
+// if it is missing or looks unreasonable. A refresh response carries no new
+// refresh_token, so the stored one is left alone unless a new one arrives.
+async function saveTokens(data) {
+  const expiresInSec = Number(data.expires_in);
   const lifetimeMs =
     Number.isFinite(expiresInSec) && expiresInSec > 60
       ? expiresInSec * 1000
       : TOKEN_LIFETIME_MS;
 
   await setInTokenStore({
-    googleToken: token,
+    googleToken: data.access_token,
     googleTokenExpiry: Date.now() + lifetimeMs,
   });
+
+  if (data.refresh_token) {
+    await setInLocal({ googleRefreshToken: data.refresh_token });
+  }
+}
+
+async function getRefreshToken() {
+  const { googleRefreshToken } = await getFromLocal(["googleRefreshToken"]);
+  return googleRefreshToken ?? null;
+}
+
+// Drops only the short-lived access token, leaving the refresh token intact so
+// the next call can renew silently.
+async function clearAccessToken() {
+  await setInTokenStore({ googleToken: null, googleTokenExpiry: null });
 }
 
 async function clearToken() {
+  const refreshToken = await getRefreshToken();
+
   await setInTokenStore({ googleToken: null, googleTokenExpiry: null });
+  await setInLocal({ googleRefreshToken: null });
+
+  // Best effort: drop the grant on Google's side too, so signing out here also
+  // removes the extension from the user's Google account permissions page.
+  if (refreshToken) {
+    fetch(REVOKE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: refreshToken }),
+    }).catch(() => {});
+  }
 }
 
 function isFirefox() {
   return chrome.runtime.getURL("").startsWith("moz-extension://");
 }
 
+// PKCE. The verifier is a high-entropy random string; the challenge sent to
+// Google is its SHA-256. Google cannot replay the code without the verifier.
+function base64Url(bytes) {
+  let bin = "";
+  for (const b of new Uint8Array(bytes)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function randomUrlSafe(byteLength) {
+  return base64Url(crypto.getRandomValues(new Uint8Array(byteLength)));
+}
+
+async function pkceChallenge(verifier) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return base64Url(digest);
+}
+
+async function postToken(params) {
+  const res = await fetch(TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      ...params,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error_description || data.error || "Token request failed");
+  }
+  return data;
+}
+
+async function exchangeCodeForTokens(code, codeVerifier, redirectUri) {
+  const data = await postToken({
+    code,
+    code_verifier: codeVerifier,
+    grant_type: "authorization_code",
+    redirect_uri: redirectUri,
+  });
+  await saveTokens(data);
+  return data.access_token;
+}
+
+// Silent renewal. Fails permanently if the user revoked access, changed their
+// Google password (which invalidates Gmail-scoped refresh tokens), or left the
+// grant unused for six months - all of which need a fresh consent screen.
+async function refreshAccessToken(refreshToken) {
+  let data;
+  try {
+    data = await postToken({ refresh_token: refreshToken, grant_type: "refresh_token" });
+  } catch (err) {
+    await clearToken();
+    throw err;
+  }
+  await saveTokens(data);
+  return data.access_token;
+}
+
 async function getAuthToken(forceNew = false) {
   if (!forceNew) {
     const saved = await getStoredToken();
     if (saved) return saved;
+
+    // A valid refresh token means no consent screen: this is the whole point of
+    // the authorization-code flow over the implicit one it replaced.
+    const refreshToken = await getRefreshToken();
+    if (refreshToken) {
+      try {
+        return await refreshAccessToken(refreshToken);
+      } catch {
+        // fall through to interactive sign-in
+      }
+    }
   }
   return isFirefox() ? authenticateFirefox() : authenticateChrome();
 }
 
-function authenticateChrome() {
+async function authenticateChrome() {
   const redirectUri = chrome.identity.getRedirectURL();
-  const authUrl = buildAuthUrl(redirectUri);
+  const verifier = randomUrlSafe(48);
+  const state = randomUrlSafe(16);
+  const authUrl = buildAuthUrl(redirectUri, await pkceChallenge(verifier), state);
 
-  return new Promise((resolve, reject) => {
-    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (responseUrl) => {
-      if (chrome.runtime.lastError || !responseUrl) {
+  const responseUrl = await new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (url) => {
+      if (chrome.runtime.lastError || !url) {
         reject(new Error(chrome.runtime.lastError?.message ?? "Auth cancelled"));
-        return;
+      } else {
+        resolve(url);
       }
-      const { token, expiresInSec } = extractAuthFromUrl(responseUrl);
-      if (!token) {
-        reject(new Error("No access_token in OAuth response"));
-        return;
-      }
-      saveToken(token, expiresInSec).then(() => resolve(token));
     });
   });
+
+  const result = extractAuthFromUrl(responseUrl);
+  if (result.error) throw new Error(result.error);
+  if (result.state !== state) throw new Error("OAuth state mismatch, aborting");
+  if (!result.code) throw new Error("No authorization code in OAuth response");
+
+  return exchangeCodeForTokens(result.code, verifier, redirectUri);
 }
 
 // Firefox does not reliably support launchWebAuthFlow with Google OAuth, so we open
 // a real tab instead and intercept the redirect URL via the tabs.onUpdated listener
-function authenticateFirefox() {
+async function authenticateFirefox() {
   const redirectUri = chrome.identity.getRedirectURL();
-  const authUrl = buildAuthUrl(redirectUri);
+  const verifier = randomUrlSafe(48);
+  const state = randomUrlSafe(16);
+  const authUrl = buildAuthUrl(redirectUri, await pkceChallenge(verifier), state);
+  const reqId = Date.now().toString();
 
-  return new Promise((resolve, reject) => {
-    const reqId = Date.now().toString();
-    // keyed by reqId so the tab listener can resolve the right promise if the SW restarts mid-auth
+  // keyed by reqId so the tab listener can resolve the right promise if the SW restarts mid-auth
+  const pending = new Promise((resolve, reject) => {
     pendingAuthCallbacks.set(reqId, { resolve, reject });
+  });
 
-    setInTokenStore({ pendingAuthReqId: reqId, pendingAuthRedirectUri: redirectUri })
-      .then(() => chrome.tabs.create({ url: authUrl, active: true }))
-      .then((tab) => setInTokenStore({ pendingAuthTabId: tab.id }))
-      .catch((err) => {
-        pendingAuthCallbacks.delete(reqId);
-        reject(new Error("Could not open auth tab: " + err));
-      });
+  // The verifier and state go to storage as well: the worker can be killed
+  // while the user is still on Google's consent screen, and the listener that
+  // wakes up later needs both to complete the exchange.
+  await setInTokenStore({
+    pendingAuthReqId: reqId,
+    pendingAuthRedirectUri: redirectUri,
+    pendingAuthVerifier: verifier,
+    pendingAuthState: state,
+  });
+
+  try {
+    const tab = await chrome.tabs.create({ url: authUrl, active: true });
+    await setInTokenStore({ pendingAuthTabId: tab.id });
+  } catch (err) {
+    pendingAuthCallbacks.delete(reqId);
+    await clearPendingAuth();
+    throw new Error("Could not open auth tab: " + err);
+  }
+
+  return pending;
+}
+
+async function clearPendingAuth() {
+  await setInTokenStore({
+    pendingAuthTabId: null,
+    pendingAuthReqId: null,
+    pendingAuthRedirectUri: null,
+    pendingAuthVerifier: null,
+    pendingAuthState: null,
   });
 }
 
@@ -133,30 +269,43 @@ const pendingAuthCallbacks = new Map();
 async function onAuthTabUpdated(tabId, changeInfo) {
   if (!changeInfo.url) return;
 
-  const { pendingAuthTabId, pendingAuthReqId, pendingAuthRedirectUri } =
-    await getFromTokenStore(["pendingAuthTabId", "pendingAuthReqId", "pendingAuthRedirectUri"]);
+  const {
+    pendingAuthTabId,
+    pendingAuthReqId,
+    pendingAuthRedirectUri,
+    pendingAuthVerifier,
+    pendingAuthState,
+  } = await getFromTokenStore([
+    "pendingAuthTabId",
+    "pendingAuthReqId",
+    "pendingAuthRedirectUri",
+    "pendingAuthVerifier",
+    "pendingAuthState",
+  ]);
 
   if (tabId !== pendingAuthTabId || !pendingAuthReqId) return;
 
   const url = changeInfo.url;
   if (!url.startsWith(pendingAuthRedirectUri)) return;
 
-  await setInTokenStore({ pendingAuthTabId: null, pendingAuthReqId: null, pendingAuthRedirectUri: null });
+  await clearPendingAuth();
   chrome.tabs.remove(tabId).catch(() => {});
 
-  const { token, expiresInSec } = extractAuthFromUrl(url);
   const cb = pendingAuthCallbacks.get(pendingAuthReqId);
   pendingAuthCallbacks.delete(pendingAuthReqId);
 
-  if (token) {
-    await saveToken(token, expiresInSec);
+  try {
+    const result = extractAuthFromUrl(url);
+    if (result.error) throw new Error(result.error);
+    if (result.state !== pendingAuthState) throw new Error("OAuth state mismatch, aborting");
+    if (!result.code) throw new Error("No authorization code in redirect");
+
+    const token = await exchangeCodeForTokens(result.code, pendingAuthVerifier, pendingAuthRedirectUri);
     cb?.resolve(token);
     // no in-memory callback means the SW was restarted; notify all tabs so they can retry
     if (!cb) broadcastTokenReady();
-  } else {
-    const errMatch = url.match(/error=([^&]+)/);
-    const msg = errMatch ? decodeURIComponent(errMatch[1]) : "No token in redirect";
-    cb?.reject(new Error(msg));
+  } catch (err) {
+    cb?.reject(err instanceof Error ? err : new Error(String(err)));
   }
 }
 
@@ -167,7 +316,7 @@ async function onAuthTabRemoved(tabId) {
   ]);
   if (tabId !== pendingAuthTabId || !pendingAuthReqId) return;
 
-  await setInTokenStore({ pendingAuthTabId: null, pendingAuthReqId: null, pendingAuthRedirectUri: null });
+  await clearPendingAuth();
   const cb = pendingAuthCallbacks.get(pendingAuthReqId);
   pendingAuthCallbacks.delete(pendingAuthReqId);
   cb?.reject(new Error("Auth tab was closed"));
@@ -181,7 +330,7 @@ function broadcastTokenReady() {
   });
 }
 
-function buildAuthUrl(redirectUri) {
+function buildAuthUrl(redirectUri, codeChallenge, state) {
   // Fail with something readable instead of a generic OAuth error page.
   if (!CLIENT_ID || CLIENT_ID === "YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE") {
     throw new Error(
@@ -192,26 +341,35 @@ function buildAuthUrl(redirectUri) {
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    response_type: "token",
+    response_type: "code",
     redirect_uri: redirectUri,
     scope: GMAIL_SCOPE,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+    state,
+    // access_type=offline is what makes Google issue a refresh token at all,
+    // and it only re-issues one when the consent screen is actually shown.
+    // The screen therefore appears once, not on every sign-in as before.
+    access_type: "offline",
     prompt: "consent",
     include_granted_scopes: "true",
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 }
 
+// The authorization-code flow returns ?code=...&state=... in the query string.
+// The old implicit flow put an access token in the fragment instead, which is
+// exactly why it could never produce a refresh token.
 function extractAuthFromUrl(url) {
-  // Google returns the token in the fragment (#access_token=...&expires_in=...), normalise it to a query string
-  const normalized = url.replace("#", "?");
   try {
-    const params = new URL(normalized).searchParams;
-    const token = params.get("access_token") ?? null;
-    const expiresInRaw = params.get("expires_in");
-    const expiresInSec = expiresInRaw ? parseInt(expiresInRaw, 10) : null;
-    return { token, expiresInSec: Number.isFinite(expiresInSec) ? expiresInSec : null };
+    const params = new URL(url).searchParams;
+    return {
+      code: params.get("code"),
+      state: params.get("state"),
+      error: params.get("error"),
+    };
   } catch {
-    return { token: null, expiresInSec: null };
+    return { code: null, state: null, error: null };
   }
 }
 
@@ -329,9 +487,11 @@ async function findLatestOTP(settings = {}) {
     );
   } catch (e) {
     if (e.message === "UNAUTHORIZED") {
-      // token expired mid-session; clear and force a fresh one
-      await clearToken();
-      token = await getAuthToken(true);
+      // Token expired mid-request. Drop just the access token so getAuthToken()
+      // renews it from the refresh token; calling clearToken() here would revoke
+      // the grant and force the user through consent again for nothing.
+      await clearAccessToken();
+      token = await getAuthToken();
       listData = await fetchGmail(
         `messages?q=${encodeURIComponent(GMAIL_QUERY)}&maxResults=10`,
         token,
@@ -410,7 +570,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "CHECK_AUTH") {
-    getStoredToken().then((token) => sendResponse({ authenticated: !!token }));
+    // A stored refresh token counts as signed in. The access token lives in
+    // session storage and is gone after every browser restart, but it can be
+    // renewed silently, so its absence is not a sign-out.
+    (async () => {
+      const access = await getStoredToken();
+      const refresh = await getRefreshToken();
+      sendResponse({ authenticated: !!(access || refresh) });
+    })();
     return true;
   }
 
