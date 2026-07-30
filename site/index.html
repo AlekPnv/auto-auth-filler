@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auto Auth Filler</title>
+<meta name="description" content="A browser extension that fills email verification codes from Gmail into one-time-code fields on any website." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128274;</text></svg>" />
+<style>
+  :root{
+    --base:#eff1f5; --mantle:#e6e9ef; --surf0:#ccd0da; --surf1:#bcc0cc;
+    --ovl:#8c8fa1; --subtext:#5c5f77; --text:#4c4f69;
+    --blue:#1e66f5; --green:#40a02b;
+    --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --base:#1e1e2e; --mantle:#181825; --surf0:#313244; --surf1:#45475a;
+      --ovl:#6c7086; --subtext:#a6adc8; --text:#cdd6f4;
+      --blue:#89b4fa; --green:#a6e3a1;
+    }
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--base);color:var(--text);font-family:var(--sans);
+    font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;
+    padding:clamp(2rem,6vw,4.5rem) 1.25rem 4rem;
+  }
+  main{max-width:44rem;margin-inline:auto;display:flex;flex-direction:column;gap:2.5rem}
+  h1{font-family:var(--mono);font-size:clamp(1.9rem,5vw,2.7rem);font-weight:700;
+     letter-spacing:-.03em;line-height:1.05;display:flex;align-items:center;gap:.6rem}
+  h2{font-family:var(--mono);font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:.6rem}
+  p{text-wrap:pretty}
+  .lede{font-size:1.1rem;color:var(--subtext)}
+  section{display:flex;flex-direction:column;gap:.6rem}
+  ul{padding-left:1.15rem;display:flex;flex-direction:column;gap:.45rem}
+  a{color:var(--blue);text-underline-offset:3px}
+  a:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
+  code{font-family:var(--mono);font-size:.88em;background:var(--surf0);
+       padding:.12em .4em;border-radius:5px}
+  .card{background:var(--mantle);border:1px solid var(--surf0);border-radius:12px;padding:1.3rem 1.5rem}
+  .badges{display:flex;flex-wrap:wrap;gap:.5rem}
+  .badge{font-family:var(--mono);font-size:.75rem;font-weight:600;padding:.22rem .65rem;
+         border-radius:999px;border:1px solid var(--surf1);color:var(--subtext)}
+  .ok{color:var(--green);font-weight:600}
+  footer{border-top:1px solid var(--surf0);padding-top:1.5rem;font-size:.88rem;color:var(--ovl);
+         display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
+  footer a{color:var(--subtext)}
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <h1><span aria-hidden="true">🔐</span> Auto Auth Filler</h1>
+    <p class="lede" style="margin-top:.8rem">
+      A browser extension that finds the verification code in your latest Gmail
+      message and fills it into the one-time-code field on whatever page you are
+      using — without you switching tabs to copy it.
+    </p>
+    <div class="badges" style="margin-top:1rem">
+      <span class="badge">Firefox 140+</span>
+      <span class="badge">Chrome · Edge · Brave</span>
+      <span class="badge">Open source · MIT</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>What it does</h2>
+    <p>
+      Signing in somewhere often means leaving the page, opening your inbox,
+      copying six digits, and coming back. Auto Auth Filler removes that round
+      trip. When it notices a verification field, it looks for a matching code
+      in your recent Gmail and offers to fill it in.
+    </p>
+    <ul>
+      <li>Works on any website. Fields are recognised by their name, label, input mode and surrounding wording, so there is no list of supported sites and no per-site setup.</li>
+      <li>Handles the usual code formats: six to eight digits, alphanumeric codes, hyphenated codes, Google's <code>G-XXXXXX</code> style, and split single-digit boxes.</li>
+      <li>Understands German forms as well as English ones.</li>
+      <li>Nothing is ever filled in automatically. The code is shown, and you decide.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Privacy</h2>
+    <div class="card">
+      <p>
+        Everything happens inside your browser. There is no server, no account
+        and no analytics, and nothing is transmitted anywhere except directly to
+        Google in order to read your own mail.
+      </p>
+      <p style="margin-top:.7rem">
+        The extension requests one permission,
+        <code>gmail.readonly</code> — <span class="ok">read-only</span>. It
+        cannot send, delete or change any email. Message bodies are held in
+        memory only long enough to look for a code, then discarded; they are
+        never written to disk or logged.
+      </p>
+      <p style="margin-top:.7rem">
+        Full details, including the Google API Services Limited Use disclosure,
+        are in the <a href="/privacy">privacy policy</a>.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Installing</h2>
+    <p>
+      The extension is not yet listed in the browser add-on stores. Until then it
+      can be loaded from source, which also requires your own Google Cloud
+      credentials — the setup steps are in the repository's
+      <a href="https://github.com/AlekPnv/auto-auth-filler#readme">README</a>.
+    </p>
+  </section>
+
+  <footer>
+    <span>Auto Auth Filler</span>
+    <a href="/privacy">Privacy policy</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler">Source code</a>
+  </footer>
+
+</main>
+</body>
+</html>
