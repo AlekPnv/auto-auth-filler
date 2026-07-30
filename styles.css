@@ -58,6 +58,11 @@
   margin-top: 4px;
 }
 
+/* The hidden attribute is enforced by a user-agent rule, which any author
+   "display" declaration outranks. Without this, .aaf-actions stays visible
+   even when content.js sets actionsEl.hidden = true. */
+#aaf-overlay [hidden] { display: none !important; }
+
 #aaf-overlay .aaf-code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 18px;

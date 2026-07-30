@@ -20,9 +20,11 @@ const btnLogout     = $("btn-logout");
 const btnOptions    = $("btn-options");
 
 let lastCode = null;
+let isAuthed = false;
 
 async function checkAuth() {
   const { authenticated } = await sendMsg({ type: "CHECK_AUTH" });
+  isAuthed = !!authenticated;
 
   if (authenticated) {
     authDot.className = "dot green";
@@ -84,7 +86,9 @@ function clearResult() {
 
 function setLoading(on) {
   spinner.style.display = on ? "block" : "none";
-  authDot.className = on ? "dot yellow" : authDot.className;
+  // Assigning authDot.className to itself left the dot yellow forever once a
+  // fetch had run; restore it from the actual auth state instead.
+  authDot.className = on ? "dot yellow" : isAuthed ? "dot green" : "dot red";
 }
 
 btnCopy.addEventListener("click", () => {

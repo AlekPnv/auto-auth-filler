@@ -169,12 +169,17 @@
       border-top: 1px solid #313244;
       margin: 16px 0;
     }
+
+    /* The hidden attribute is enforced by a user-agent rule, which any author
+       "display" declaration outranks. Kept here so adding a display rule to a
+       toggled element later cannot silently break hiding. */
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
   <div class="page">
     <h1>🔐 Auto Auth Filler</h1>
-    <p class="subtitle">Settings v3.1.0</p>
+    <p class="subtitle">Settings v3.1.1</p>
 
     <!-- Behaviour -->
     <div class="card">

@@ -91,6 +91,11 @@
       padding: 12px 16px;
     }
 
+    /* The hidden attribute is enforced by a user-agent rule, which any author
+       "display" declaration outranks. Without this, .btn-row's display:flex
+       keeps [hidden] rows on screen. */
+    [hidden] { display: none !important; }
+
     button {
       flex: 1;
       padding: 8px 10px;
