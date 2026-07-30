@@ -11,7 +11,7 @@ Auto Auth Filler is a browser extension that automatically detects and fills OTP
 | Chrome 102+ | ✅ Full support |
 | Edge 102+ (Chromium) | ✅ Full support |
 | Brave / Opera / Vivaldi | ✅ Full support (Chromium-based) |
-| Firefox 128+ | ✅ Full support |
+| Firefox 140+ | ✅ Full support |
 
 ---
 

@@ -19,6 +19,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Card PIN fields are no longer offered a Gmail code. `pin` still scores, but a field that scored on `pin` alone is demoted when the surrounding form mentions a card, payment or IBAN.
 - Code fields rendered as `type="password"`, as some banks do, are now detected. They are only considered when the field names itself unambiguously — `otp`, `one-time`, `Einmalcode`, `Bestätigungscode` or `verification code` — so ordinary password boxes are never touched. `passcode` is deliberately excluded, because sites use it for real passwords.
 - The OAuth client ID moved out of `background.js` into a git-ignored `config.js`, created from `config.template.js`. `background.js` is now committed like any other file — previously the whole file was excluded from version control, which left a clone with no background script at all.
+- The overlay's action row is built with DOM calls instead of `innerHTML`. The code was already escaped, but add-on review flags every dynamic `innerHTML` assignment, and `escapeHtml()` is no longer needed.
+- Declared `data_collection_permissions: { required: ["none"] }`, which addons.mozilla.org requires for new submissions. The extension transmits nothing: email bodies are matched in memory and discarded.
+- Minimum Firefox raised from 128 to 140, the first version that supports that key. Firefox for Android needs 142.
 
 ### Known issues
 

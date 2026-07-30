@@ -181,15 +181,28 @@ function setOverlayResult(otp, subject, ageMins, error) {
   const age = ageMins != null ? ` · ${ageMins}m ago` : "";
   statusEl.textContent = truncate(subject, 48) + age;
 
-  actionsEl.innerHTML = `
-    <button class="aaf-btn aaf-fill" title="Fill and submit">↵ Fill & submit</button>
-    <button class="aaf-btn aaf-copy" title="Copy to clipboard">📋</button>
-    <code class="aaf-code">${escapeHtml(otp)}</code>
-  `;
-  actionsEl.hidden = false;
+  // Built with DOM calls instead of innerHTML: the code originates in email
+  // content, and add-on review flags every dynamic innerHTML assignment.
+  actionsEl.textContent = "";
 
-  actionsEl.querySelector(".aaf-fill").addEventListener("click", () => fillOTP(otp));
-  actionsEl.querySelector(".aaf-copy").addEventListener("click", () => copyOTP(otp));
+  const fillBtn = document.createElement("button");
+  fillBtn.className = "aaf-btn aaf-fill";
+  fillBtn.title = "Fill and submit";
+  fillBtn.textContent = "↵ Fill & submit";
+  fillBtn.addEventListener("click", () => fillOTP(otp));
+
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "aaf-btn aaf-copy";
+  copyBtn.title = "Copy to clipboard";
+  copyBtn.textContent = "📋";
+  copyBtn.addEventListener("click", () => copyOTP(otp));
+
+  const codeEl = document.createElement("code");
+  codeEl.className = "aaf-code";
+  codeEl.textContent = otp;
+
+  actionsEl.append(fillBtn, copyBtn, codeEl);
+  actionsEl.hidden = false;
 }
 
 function removeOverlay() {
@@ -200,10 +213,6 @@ function removeOverlay() {
 
 function truncate(str, max) {
   return str.length <= max ? str : str.slice(0, max - 1) + "…";
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function fillOTP(otp) {
