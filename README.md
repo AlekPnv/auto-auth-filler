@@ -78,6 +78,8 @@ Open the settings page from the popup footer.
 
 ## Privacy and permissions
 
+The full policy is in [PRIVACY.md](PRIVACY.md), including the Google API Services Limited Use disclosure. In summary:
+
 - The only Gmail scope requested is `gmail.readonly`. The extension cannot send, delete, or modify any email.
 - The short-lived access token is kept in session storage and is cleared when the browser closes. The refresh token is kept in the browser's local storage, because it has to survive a restart — that is what keeps you signed in instead of facing a consent screen every hour. Both are removed, and the grant is revoked with Google, when you press **Sign out**.
 - No data leaves your browser. There is no external server, analytics, or telemetry of any kind.
