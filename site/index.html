@@ -4,7 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Auto Auth Filler</title>
-<meta name="description" content="A browser extension that fills email verification codes from Gmail into one-time-code fields on any website." />
+<meta name="description" content="Auto Auth Filler is a browser extension that reads the verification code from your latest Gmail message and fills it into the one-time-code field on any website." />
+<meta name="google-site-verification" content="rvWb1EPNwKQ5Mey1AFs72x_M5ZOmVXu_DFm_cZ7IAvw" />
+<meta name="application-name" content="Auto Auth Filler" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128274;</text></svg>" />
 <style>
   :root{
@@ -29,7 +31,8 @@
   }
   main{max-width:44rem;margin-inline:auto;display:flex;flex-direction:column;gap:2.5rem}
   h1{font-family:var(--mono);font-size:clamp(1.9rem,5vw,2.7rem);font-weight:700;
-     letter-spacing:-.03em;line-height:1.05;display:flex;align-items:center;gap:.6rem}
+     letter-spacing:-.03em;line-height:1.05}
+  .logo{font-size:2.2rem;line-height:1;margin-bottom:.5rem}
   h2{font-family:var(--mono);font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:.6rem}
   p{text-wrap:pretty}
   .lede{font-size:1.1rem;color:var(--subtext)}
@@ -53,11 +56,16 @@
 <main>
 
   <header>
-    <h1><span aria-hidden="true">🔐</span> Auto Auth Filler</h1>
+    <!-- The emoji is deliberately outside the h1: Google's branding check
+         compares the heading text against the OAuth consent screen app name,
+         and "🔐 Auto Auth Filler" does not match "Auto Auth Filler". -->
+    <div class="logo" aria-hidden="true">🔐</div>
+    <h1>Auto Auth Filler</h1>
     <p class="lede" style="margin-top:.8rem">
-      A browser extension that finds the verification code in your latest Gmail
-      message and fills it into the one-time-code field on whatever page you are
-      using — without you switching tabs to copy it.
+      <strong>Auto Auth Filler is a browser extension for Firefox and Chrome.</strong>
+      It reads the verification code from your latest Gmail message and fills it
+      into the one-time-code field on the website you are signing in to, so you
+      no longer have to switch to your inbox and copy it by hand.
     </p>
     <div class="badges" style="margin-top:1rem">
       <span class="badge">Firefox 140+</span>
@@ -67,12 +75,17 @@
   </header>
 
   <section>
-    <h2>What it does</h2>
+    <h2>The purpose of this application</h2>
     <p>
       Signing in somewhere often means leaving the page, opening your inbox,
-      copying six digits, and coming back. Auto Auth Filler removes that round
-      trip. When it notices a verification field, it looks for a matching code
-      in your recent Gmail and offers to fill it in.
+      copying six digits, and coming back. Auto Auth Filler exists to remove that
+      round trip, and does nothing else.
+    </p>
+    <p>
+      When the extension notices a verification field on a page, it searches your
+      recent Gmail messages for a matching code and offers to fill it in. It
+      requests read-only access to Gmail for that single purpose. It does not
+      send email, does not modify your account, and has no other function.
     </p>
     <ul>
       <li>Works on any website. Fields are recognised by their name, label, input mode and surrounding wording, so there is no list of supported sites and no per-site setup.</li>
