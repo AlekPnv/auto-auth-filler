@@ -52,17 +52,21 @@ else
   echo "  WARNING: icons/ directory not found"
 fi
 
-# 3. Chrome ZIP
+# 3. Chrome ZIP - manifest without background.scripts, which Chrome warns about
 echo "[3/4] Creating Chrome ZIP..."
+node make-manifest.js chrome "$DIST/manifest.json"
 rm -f "$CHROME_ZIP"
 (cd "$DIST" && zip -r "../$CHROME_ZIP" . --exclude "*.DS_Store" --exclude "__MACOSX/*")
 echo "  Created $CHROME_ZIP"
 
-# 4. Firefox ZIP (identical content; gecko settings are embedded in manifest)
+# 4. Firefox ZIP - manifest without background.service_worker, which AMO flags
 echo "[4/4] Creating Firefox ZIP..."
+node make-manifest.js firefox "$DIST/manifest.json"
 rm -f "$FIREFOX_ZIP"
 (cd "$DIST" && zip -r "../$FIREFOX_ZIP" . --exclude "*.DS_Store" --exclude "__MACOSX/*")
 echo "  Created $FIREFOX_ZIP"
+
+# Leave dist/ holding the Firefox manifest, which is the one web-ext lints.
 
 # Done
 echo ""

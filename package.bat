@@ -35,12 +35,14 @@ if exist "icons" (
     echo   WARNING: icons\ folder not found
 )
 
-echo [3/4] Creating Chrome ZIP...
+echo [3/4] Creating Chrome ZIP (manifest without background.scripts)...
+call node make-manifest.js chrome "%DIST%\manifest.json"
 if exist "%CHROME_ZIP%" del "%CHROME_ZIP%"
 powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath '%CHROME_ZIP%' -Force"
 echo   Created %CHROME_ZIP%
 
-echo [4/4] Creating Firefox ZIP (same manifest, gecko settings already embedded)...
+echo [4/4] Creating Firefox ZIP (manifest without background.service_worker)...
+call node make-manifest.js firefox "%DIST%\manifest.json"
 if exist "%FIREFOX_ZIP%" del "%FIREFOX_ZIP%"
 powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath '%FIREFOX_ZIP%' -Force"
 echo   Created %FIREFOX_ZIP%
