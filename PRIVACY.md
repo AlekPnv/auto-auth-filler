@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Auto Auth Filler** — last updated 30 July 2026
+**Auto Auth Filler**, last updated 31 July 2026
 
 Auto Auth Filler is a browser extension that finds the verification code in your
 most recent Gmail message and fills it into the one-time-code field on the page
@@ -19,7 +19,7 @@ ten most recent messages from the last day that look like verification emails,
 and reads them only to locate a numeric or alphanumeric code.
 
 It cannot send, delete, modify, or label mail. That is enforced by Google, not
-merely by this extension's own code — the permission granted does not allow it.
+merely by this extension's own code. The permission granted does not allow it.
 
 **Page content on sites you visit.** To recognise a one-time-code field, the
 extension inspects form fields on the page: their names, labels, input types,
@@ -39,7 +39,7 @@ Everything is stored by your browser, on your device.
 | Your settings (auto-submit, maximum code age, blocked domains) | Browser local storage | You uninstall the extension |
 
 The refresh token is kept in local storage deliberately, because it must
-survive a browser restart — otherwise you would face a Google consent screen
+survive a browser restart. Otherwise you would face a Google consent screen
 roughly every hour. Pressing **Sign out** deletes both tokens and additionally
 asks Google to revoke the grant, so the extension also disappears from the
 permissions list on your Google account.
@@ -55,10 +55,10 @@ is no history, no cache, and no log of what was read.
 
 Requests go to exactly three Google endpoints, and nowhere else:
 
-- `accounts.google.com` — to show you Google's sign-in and consent screen
-- `oauth2.googleapis.com` — to exchange and refresh tokens, and to revoke them
+- `accounts.google.com`, to show you Google's sign-in and consent screen
+- `oauth2.googleapis.com`, to exchange and refresh tokens, and to revoke them
   when you sign out
-- `gmail.googleapis.com` — to search and read your messages
+- `gmail.googleapis.com`, to search and read your messages
 
 There is no server operated by the developer of this extension. No analytics,
 no telemetry, no crash reporting, no advertising, and no third-party service of
@@ -72,14 +72,14 @@ adheres to the
 including the Limited Use requirements.
 
 Specifically, Google user data is used only to provide the extension's single
-user-facing feature — locating a verification code and offering to fill it in.
+user-facing feature, which is locating a verification code and entering it.
 It is not transferred to anyone, not used for advertising, not used to train
 any model, and not read by any human.
 
 ## Your control
 
-- Nothing is filled in without you clicking. The extension shows the code it
-  found and waits.
+- Automatic filling can be switched off in Settings, in which case the code is
+  shown and the extension waits for you. On password fields it always waits.
 - Individual sites can be silenced through the blocked-domains list in
   Settings.
 - Signing out revokes access immediately.

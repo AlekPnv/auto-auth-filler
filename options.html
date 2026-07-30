@@ -179,12 +179,25 @@
 <body>
   <div class="page">
     <h1>🔐 Auto Auth Filler</h1>
-    <p class="subtitle">Settings v3.2.0</p>
+    <p class="subtitle">Settings v3.3.0</p>
 
     <!-- Behaviour -->
     <div class="card">
       <h2>Behaviour</h2>
       <p class="desc">Control how the extension reacts when it finds a code.</p>
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <strong>Fill automatically</strong>
+          <span>Enter the code as soon as it is found, without waiting for a click. Password fields always require a click.</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="autoFill" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <hr class="divider" />
 
       <div class="toggle-row">
         <div class="toggle-label">

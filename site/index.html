@@ -83,15 +83,15 @@
     </p>
     <p>
       When the extension notices a verification field on a page, it searches your
-      recent Gmail messages for a matching code and offers to fill it in. It
-      requests read-only access to Gmail for that single purpose. It does not
-      send email, does not modify your account, and has no other function.
+      recent Gmail messages for a matching code and enters it. It requests
+      read-only access to Gmail for that single purpose. It does not send email,
+      does not modify your account, and has no other function.
     </p>
     <ul>
       <li>Works on any website. Fields are recognised by their name, label, input mode and surrounding wording, so there is no list of supported sites and no per-site setup.</li>
       <li>Handles the usual code formats: six to eight digits, alphanumeric codes, hyphenated codes, Google's <code>G-XXXXXX</code> style, and split single-digit boxes.</li>
       <li>Understands German forms as well as English ones.</li>
-      <li>Nothing is ever filled in automatically. The code is shown, and you decide.</li>
+      <li>Filling can be switched off in the settings, and on password fields the extension always waits for a click.</li>
     </ul>
   </section>
 
@@ -105,7 +105,7 @@
       </p>
       <p style="margin-top:.7rem">
         The extension requests one permission,
-        <code>gmail.readonly</code> — <span class="ok">read-only</span>. It
+        <code>gmail.readonly</code>, which is <span class="ok">read-only</span>. It
         cannot send, delete or change any email. Message bodies are held in
         memory only long enough to look for a code, then discarded; they are
         never written to disk or logged.
@@ -122,7 +122,7 @@
     <p>
       The extension is not yet listed in the browser add-on stores. Until then it
       can be loaded from source, which also requires your own Google Cloud
-      credentials — the setup steps are in the repository's
+      credentials. The setup steps are in the repository's
       <a href="https://github.com/AlekPnv/auto-auth-filler#readme">README</a>.
     </p>
   </section>

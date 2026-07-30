@@ -18,7 +18,8 @@ function sendMsg(msg) {
   });
 }
 
-chrome.storage.local.get(["autoSubmit", "maxOTPAge", "blockedDomains"], (res) => {
+chrome.storage.local.get(["autoFill", "autoSubmit", "maxOTPAge", "blockedDomains"], (res) => {
+  $("autoFill").checked = res.autoFill !== false;
   $("autoSubmit").checked = res.autoSubmit !== false;
   $("maxAge").value = res.maxOTPAge ?? 10;
 
@@ -27,10 +28,11 @@ chrome.storage.local.get(["autoSubmit", "maxOTPAge", "blockedDomains"], (res) =>
 });
 
 $("saveBehaviour").addEventListener("click", () => {
+  const autoFill = $("autoFill").checked;
   const autoSubmit = $("autoSubmit").checked;
   const maxOTPAge = Math.max(1, Math.min(60, parseInt($("maxAge").value) || 10));
 
-  chrome.storage.local.set({ autoSubmit, maxOTPAge }, () => {
+  chrome.storage.local.set({ autoFill, autoSubmit, maxOTPAge }, () => {
     showFeedback("behaviourFeedback");
   });
 });

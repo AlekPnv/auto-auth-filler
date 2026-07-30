@@ -62,6 +62,7 @@ Open the **⚙ Settings** page from the popup footer:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| Fill automatically | ON | Enters the code as soon as it is found. Password fields always wait for a click. |
 | Auto-submit after filling | ON | Automatically clicks the verify/confirm button after filling. |
 | Maximum code age | 10 min | Codes older than this are ignored. |
 | Blocked domains | (empty) | Enter domains (one per line) where the overlay should never appear. |

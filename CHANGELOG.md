@@ -5,6 +5,18 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-07-31
+
+### Added
+
+- The code is now entered as soon as it is found, without waiting for a click. This was the original intent of the extension: if you still have to click, you have done about as much work as opening your inbox yourself. A new "Fill automatically" setting turns it off for anyone who prefers to confirm each time.
+- Fields rendered as `type="password"` are the one exception and always wait for a click, whatever the setting. Those are the fields where a misdetection does real damage.
+
+### Changed
+
+- The store listing, README, setup guide, privacy policy and website all described the old behaviour, where nothing was entered without a click. All of them now describe what the extension actually does.
+- Reviewer notes added to `STORE_LISTING.md`, covering the unverified-app warning a reviewer will hit, how to test with a supplied account, the absence of any build step, why `config.js` contains a client secret, and the justification for `<all_urls>`.
+
 ## [3.2.0] - 2026-07-30
 
 ### Changed
@@ -13,7 +25,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Token storage split to match the new lifetimes. The access token stays in session storage and is cleared when the browser closes; the refresh token is kept in local storage, because sign-in that does not survive a restart defeats the purpose. **Sign out** now deletes both and revokes the grant with Google, so the extension also disappears from the account's permissions page.
 - A 401 during a Gmail request now discards only the access token and renews it, instead of clearing everything and forcing a new consent screen.
 - `CHECK_AUTH` treats a stored refresh token as signed in. Previously the popup reported "Not signed in" after every browser restart, because it only looked at the session-scoped access token.
-- `config.js` gained `CLIENT_SECRET`. Google's Web application client type requires it at the token endpoint even with PKCE — confirmed by request, the endpoint answers `client_secret is missing` without it. Firefox forces that client type, because `chrome.identity.getRedirectURL()` returns an https URI and only a Web application client accepts one. The secret therefore ships inside the package; PKCE is what stops an intercepted code from being redeemed by anyone else.
+- `config.js` gained `CLIENT_SECRET`. Google's Web application client type requires it at the token endpoint even with PKCE. Confirmed by request: the endpoint answers `client_secret is missing` without it. Firefox forces that client type, because `chrome.identity.getRedirectURL()` returns an https URI and only a Web application client accepts one. The secret therefore ships inside the package; PKCE is what stops an intercepted code from being redeemed by anyone else.
 
 ### Migration
 
@@ -24,23 +36,23 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 
-- The popup showed "Sign in with Google" while already signed in, and the on-page overlay never hid its action row. Both elements were toggled correctly in JavaScript via the `hidden` attribute, but `hidden` is enforced by a user-agent rule that any author `display` declaration outranks — `.btn-row` and `.aaf-actions` are both `display: flex`, so the elements stayed on screen regardless. An explicit `[hidden] { display: none !important }` now backs the attribute in all three stylesheets.
+- The popup showed "Sign in with Google" while already signed in, and the on-page overlay never hid its action row. Both elements were toggled correctly in JavaScript via the `hidden` attribute, but `hidden` is enforced by a user-agent rule that any author `display` declaration outranks. `.btn-row` and `.aaf-actions` are both `display: flex`, so the elements stayed on screen regardless. An explicit `[hidden] { display: none !important }` now backs the attribute in all three stylesheets.
 - The popup's status dot stayed yellow after fetching a code. `setLoading(false)` assigned `authDot.className` to itself, which changed nothing; it now restores green or red from the actual sign-in state.
 
 ## [3.1.0] - 2026-07-30
 
 ### Fixed
 
-- Alphanumeric codes were lost whenever an ordinary word sat in front of them. Each pattern only ever examined its first match, so a word without digits — "continue" in `Enter this code to continue: 7FK2QA` — consumed the pattern and the real code was never reached. Every occurrence is now checked before falling through to the next pattern.
+- Alphanumeric codes were lost whenever an ordinary word sat in front of them. Each pattern only ever examined its first match, so a word without digits, "continue" in `Enter this code to continue: 7FK2QA`, consumed the pattern and the real code was never reached. Every occurrence is now checked before falling through to the next pattern.
 - The label pattern could not span a word between the label and the code. Its separator excluded letters, so `Ihr Einmalcode lautet 934812` never matched as a labelled code and only worked by accident, because the bare-digit fallback happened to find the same number. Up to three words are now allowed in the gap.
-- German code fields were not detected. `\b` cannot break a compound noun, so `Bestätigungscode` and `Einmalcode` scored nothing on the field name and such fields landed on 27 points against a threshold of 28 — one point short. The name, form-wording and submit-button vocabulary now recognise German compounds.
+- German code fields were not detected. `\b` cannot break a compound noun, so `Bestätigungscode` and `Einmalcode` scored nothing on the field name and such fields landed on 27 points against a threshold of 28, one point short. The name, form-wording and submit-button vocabulary now recognise German compounds.
 - The overlay could sit on "Searching Gmail for code…" indefinitely. When the background worker replied that it was busy, the content script never inspected the response and neither retried nor gave up. Busy replies are now retried with a backoff, and any search that goes unanswered times out.
 
 ### Changed
 
 - Card PIN fields are no longer offered a Gmail code. `pin` still scores, but a field that scored on `pin` alone is demoted when the surrounding form mentions a card, payment or IBAN.
-- Code fields rendered as `type="password"`, as some banks do, are now detected. They are only considered when the field names itself unambiguously — `otp`, `one-time`, `Einmalcode`, `Bestätigungscode` or `verification code` — so ordinary password boxes are never touched. `passcode` is deliberately excluded, because sites use it for real passwords.
-- The OAuth client ID moved out of `background.js` into a git-ignored `config.js`, created from `config.template.js`. `background.js` is now committed like any other file — previously the whole file was excluded from version control, which left a clone with no background script at all.
+- Code fields rendered as `type="password"`, as some banks do, are now detected. They are only considered when the field names itself unambiguously (`otp`, `one-time`, `Einmalcode`, `Bestätigungscode` or `verification code`), so ordinary password boxes are never touched. `passcode` is deliberately excluded, because sites use it for real passwords.
+- The OAuth client ID moved out of `background.js` into a git-ignored `config.js`, created from `config.template.js`. `background.js` is now committed like any other file. Previously the whole file was excluded from version control, which left a clone with no background script at all.
 - The overlay's action row is built with DOM calls instead of `innerHTML`. The code was already escaped, but add-on review flags every dynamic `innerHTML` assignment, and `escapeHtml()` is no longer needed.
 - Declared `data_collection_permissions: { required: ["none"] }`, which addons.mozilla.org requires for new submissions. The extension transmits nothing: email bodies are matched in memory and discarded.
 - Minimum Firefox raised from 128 to 140, the first version that supports that key. Firefox for Android needs 142.
@@ -64,6 +76,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.3.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.0
 [3.2.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.2.0
 [3.1.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.1.1
 [3.1.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.1.0

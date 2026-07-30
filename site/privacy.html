@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Privacy Policy — Auto Auth Filler</title>
+<title>Privacy Policy: Auto Auth Filler</title>
 <meta name="description" content="Privacy policy for the Auto Auth Filler browser extension, including the Google API Services Limited Use disclosure." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128274;</text></svg>" />
 <style>
@@ -56,7 +56,7 @@
 
   <header>
     <h1>Privacy Policy</h1>
-    <p class="meta" style="margin-top:.5rem">Auto Auth Filler — last updated 30 July 2026</p>
+    <p class="meta" style="margin-top:.5rem">Auto Auth Filler, last updated 31 July 2026</p>
     <p class="lede" style="margin-top:1rem">
       Everything happens inside your browser. There is no server, no account, no
       analytics, and nothing is sent anywhere except directly to Google's own API
@@ -74,7 +74,7 @@
     </p>
     <p>
       It <span class="ok">cannot</span> send, delete, modify or label mail. That
-      is enforced by Google, not merely by this extension's own code — the
+      is enforced by Google, not merely by this extension's own code. The
       permission granted does not allow it.
     </p>
     <p>
@@ -101,7 +101,7 @@
     </div>
     <p>
       The refresh token is kept in local storage deliberately, because it must
-      survive a browser restart — otherwise you would face a Google consent
+      survive a browser restart. Otherwise you would face a Google consent
       screen roughly every hour. Signing out deletes both tokens and asks Google
       to revoke the grant, so the extension also disappears from the permissions
       list on your Google account.
@@ -122,9 +122,9 @@
     <h2>What is transmitted</h2>
     <p>Requests go to exactly three Google endpoints, and nowhere else:</p>
     <ul>
-      <li><code>accounts.google.com</code> — to show Google's sign-in and consent screen</li>
-      <li><code>oauth2.googleapis.com</code> — to exchange, refresh and revoke tokens</li>
-      <li><code>gmail.googleapis.com</code> — to search and read your messages</li>
+      <li><code>accounts.google.com</code>, to show Google's sign-in and consent screen</li>
+      <li><code>oauth2.googleapis.com</code>, to exchange, refresh and revoke tokens</li>
+      <li><code>gmail.googleapis.com</code>, to search and read your messages</li>
     </ul>
     <p>
       There is no server operated by the developer of this extension. No
@@ -144,8 +144,8 @@
       </p>
       <p style="margin-top:.7rem">
         Google user data is used only to provide the extension's single
-        user-facing feature — locating a verification code and offering to fill
-        it in. It is not transferred to anyone, not used for advertising, not
+        user-facing feature, which is locating a verification code and entering
+        it. It is not transferred to anyone, not used for advertising, not
         used to train any model, and not read by any human.
       </p>
     </div>
@@ -154,7 +154,7 @@
   <section>
     <h2>Your control</h2>
     <ul>
-      <li>Nothing is filled in without you clicking. The extension shows the code it found and waits.</li>
+      <li>Automatic filling can be switched off in Settings, in which case the code is shown and the extension waits for you. On password fields it always waits.</li>
       <li>Individual sites can be silenced through the blocked-domains list in Settings.</li>
       <li>Signing out revokes access immediately.</li>
       <li>You can revoke access at any time, independently of this extension, at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>

@@ -203,6 +203,16 @@ function setOverlayResult(otp, subject, ageMins, error) {
 
   actionsEl.append(fillBtn, copyBtn, codeEl);
   actionsEl.hidden = false;
+
+  // Fill without waiting for a click, which is the point of the extension.
+  // Password-type fields are excluded: those are the ones where a wrong guess
+  // does real damage, so they always need a deliberate click.
+  chrome.storage.local.get("autoFill", ({ autoFill }) => {
+    if (autoFill === false) return;
+    const inputs = findOTPInputs();
+    const isPasswordField = inputs?.some((el) => (el.type || "").toLowerCase() === "password");
+    if (!isPasswordField) fillOTP(otp);
+  });
 }
 
 function removeOverlay() {

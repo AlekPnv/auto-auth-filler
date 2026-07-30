@@ -10,7 +10,7 @@ Switching between your inbox and a login form to copy a six-digit code is a smal
 
 - Detects OTP and 2FA fields on virtually any website using a scoring system based on field attributes, input mode, label text, and surrounding page context. There is no list of supported sites to maintain; it simply works where it is needed.
 - Reads recent Gmail messages (read-only) and extracts the verification code using pattern matching that covers plain numeric codes, alphanumeric codes, hyphenated formats, Google-style "G-XXXXXX" codes, and split-digit input boxes.
-- Shows a small overlay with the code it found, plus "Fill and Submit" and "Copy" actions, so you stay in control of when the code is used.
+- Enters the code as soon as it finds one, and shows a small overlay saying which email it came from, with "Copy" and a manual fill button. Automatic filling can be switched off, and password fields always wait for a click.
 - Optional auto-submit after filling, a configurable maximum code age, and a per-domain blocklist for sites where you never want the overlay to appear.
 - Works on Chrome, Edge, Brave, Opera, Vivaldi, and Firefox.
 
@@ -19,7 +19,7 @@ Switching between your inbox and a login form to copy a six-digit code is a smal
 1. You sign in with Google once, granting the `gmail.readonly` scope. The extension cannot send, delete, or modify your email; it can only read it.
 2. When you land on a page with a verification field, the content script recognizes it and asks the background service worker for a code.
 3. The background worker searches your most recent Gmail messages for something that looks like a verification email and extracts the code from it.
-4. The code appears in an overlay on the page. You choose whether to fill it, fill and submit, or just copy it.
+4. The code is entered into the field, and an overlay shows which email it came from. If you have turned automatic filling off, the overlay waits for you to click instead.
 
 No email content is ever stored or sent anywhere outside your browser. Codes are read into memory long enough to extract and display them, then discarded.
 
@@ -58,13 +58,13 @@ This extension needs its own Google Cloud project and OAuth 2.0 Client ID to tal
 
 See `config.template.js` for the full step-by-step instructions, including where to find your extension's ID for the credential setup.
 
-A note on what is and isn't secret: a client ID for an installed application is **not** a credential. It ships inside every published extension and anyone can read it by unpacking the XPI or CRX — Google documents it as public. It is kept out of the repository because it identifies a specific Google Cloud project, not because leaking it would compromise an account. The OAuth *client secret* is the thing that must never be committed, and this extension does not use one.
+A note on what is and isn't secret: a client ID for an installed application is **not** a credential. It ships inside every published extension and anyone can read it by unpacking the XPI or CRX. Google documents it as public. It is kept out of the repository because it identifies a specific Google Cloud project, not because leaking it would compromise an account. The OAuth *client secret* is the thing that must never be committed, and this extension does not use one.
 
 ## Usage
 
 1. Click the Auto Auth Filler icon in the toolbar.
 2. Click "Sign in with Google" and approve the read-only Gmail permission.
-3. Visit any site that emails you a verification code. When the extension detects a code field, the overlay appears with the code already found.
+3. Visit any site that emails you a verification code. When the extension detects a code field, it fills in the code and the overlay shows where it came from.
 
 ## Settings
 
@@ -72,6 +72,7 @@ Open the settings page from the popup footer.
 
 | Setting                   | Default    | Description                                                                |
 | ------------------------- | ---------- | -------------------------------------------------------------------------- |
+| Fill automatically        | On         | Enters the code as soon as it is found. Password fields always wait for a click. |
 | Auto-submit after filling | On         | Automatically activates the form's submit button once the field is filled. |
 | Maximum code age          | 10 minutes | Codes found in older emails are ignored.                                   |
 | Blocked domains           | Empty      | Domains, one per line, where the overlay should never appear.              |
@@ -81,7 +82,7 @@ Open the settings page from the popup footer.
 The full policy is in [PRIVACY.md](PRIVACY.md), including the Google API Services Limited Use disclosure. In summary:
 
 - The only Gmail scope requested is `gmail.readonly`. The extension cannot send, delete, or modify any email.
-- The short-lived access token is kept in session storage and is cleared when the browser closes. The refresh token is kept in the browser's local storage, because it has to survive a restart — that is what keeps you signed in instead of facing a consent screen every hour. Both are removed, and the grant is revoked with Google, when you press **Sign out**.
+- The short-lived access token is kept in session storage and is cleared when the browser closes. The refresh token is kept in the browser's local storage, because it has to survive a restart. That is what keeps you signed in instead of facing a consent screen every hour. Both are removed, and the grant is revoked with Google, when you press **Sign out**.
 - No data leaves your browser. There is no external server, analytics, or telemetry of any kind.
 - Email bodies are processed in memory only, for as long as it takes to look for a code, and are never written to disk or logged.
 
@@ -89,7 +90,7 @@ A full breakdown of why each permission is requested is available in `STORE_LIST
 
 ## Building a release package
 
-Run `package.bat` (Windows) or `package.sh` (macOS/Linux) from the project root. Both scripts assemble a clean copy of the extension's files into a `dist` folder and produce ZIP archives ready for submission to the Chrome Web Store and Firefox AMO. `config.js` is included in the package — the extension cannot authenticate without it — so make sure it holds *your* Client ID before you upload anything.
+Run `package.bat` (Windows) or `package.sh` (macOS/Linux) from the project root. Both scripts assemble a clean copy of the extension's files into a `dist` folder and produce ZIP archives ready for submission to the Chrome Web Store and Firefox AMO. `config.js` is included in the package, since the extension cannot authenticate without it, so make sure it holds *your* Client ID before you upload anything.
 
 ## Project structure
 
@@ -128,4 +129,4 @@ Issues and pull requests are welcome. If you are changing how OTP detection or e
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT. See [LICENSE](LICENSE) for details.
