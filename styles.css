@@ -1,0 +1,125 @@
+/* Auto Auth Filler overlay styles (scoped to #aaf-overlay) */
+
+#aaf-overlay {
+  all: initial;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  animation: aaf-slide-in 0.2s ease-out;
+  max-width: 340px;
+  pointer-events: auto;
+}
+
+@keyframes aaf-slide-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#aaf-overlay .aaf-inner {
+  all: initial;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#aaf-overlay .aaf-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+#aaf-overlay .aaf-status {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #cdd6f4;
+}
+
+#aaf-overlay .aaf-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+#aaf-overlay .aaf-code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #a6e3a1;
+  background: #313244;
+  border-radius: 6px;
+  padding: 2px 8px;
+  margin-left: auto;
+  user-select: all;
+}
+
+#aaf-overlay .aaf-btn {
+  all: initial;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+#aaf-overlay .aaf-btn:hover { opacity: 0.85; }
+#aaf-overlay .aaf-btn:active { opacity: 0.65; }
+
+#aaf-overlay .aaf-fill {
+  background: #89b4fa;
+  color: #1e1e2e;
+}
+
+#aaf-overlay .aaf-copy {
+  background: #45475a;
+  color: #cdd6f4;
+  padding: 5px 9px;
+}
+
+#aaf-overlay .aaf-close {
+  all: initial;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 13px;
+  color: #585b70;
+  cursor: pointer;
+  line-height: 1;
+  font-family: inherit;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+#aaf-overlay .aaf-close:hover { color: #f38ba8; }
+
+@media (prefers-color-scheme: light) {
+  #aaf-overlay .aaf-inner {
+    border-color: #313244;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  }
+}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auto Auth Filler Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 32px 0 64px;
+    }
+
+    .page {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #cdd6f4;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      color: #6c7086;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: #181825;
+      border: 1px solid #313244;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #89b4fa;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .card p.desc {
+      font-size: 12px;
+      color: #6c7086;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #a6adca;
+      margin-bottom: 6px;
+    }
+
+    input[type="number"],
+    textarea {
+      width: 100%;
+      background: #313244;
+      border: 1px solid #45475a;
+      border-radius: 8px;
+      color: #cdd6f4;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"]:focus,
+    textarea:focus { border-color: #89b4fa; }
+
+    input[type="number"] { width: 100px; }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-size: 13px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .toggle-label { flex: 1; }
+    .toggle-label strong { display: block; color: #cdd6f4; margin-bottom: 2px; }
+    .toggle-label span { font-size: 12px; color: #6c7086; }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #45475a;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: #cdd6f4;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #89b4fa; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .btn-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    button {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button:hover { opacity: 0.85; }
+    button:active { opacity: 0.65; }
+
+    .btn-primary { background: #89b4fa; color: #1e1e2e; }
+    .btn-danger  { background: #f38ba8; color: #1e1e2e; }
+
+    .feedback {
+      font-size: 12px;
+      color: #a6e3a1;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feedback.visible { opacity: 1; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #313244;
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>🔐 Auto Auth Filler</h1>
+    <p class="subtitle">Settings v3.1.0</p>
+
+    <!-- Behaviour -->
+    <div class="card">
+      <h2>Behaviour</h2>
+      <p class="desc">Control how the extension reacts when it finds a code.</p>
+
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <strong>Auto-submit after filling</strong>
+          <span>Click the verify/submit button automatically after filling the code.</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="autoSubmit" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <hr class="divider" />
+
+      <label for="maxAge">Maximum code age (minutes)</label>
+      <input type="number" id="maxAge" min="1" max="60" value="10" />
+      <p class="desc" style="margin-top:6px;margin-bottom:0">
+        Codes older than this are ignored. Gmail OTPs are usually valid for 10 minutes.
+      </p>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="saveBehaviour">Save</button>
+        <span class="feedback" id="behaviourFeedback">Saved ✓</span>
+      </div>
+    </div>
+
+    <!-- Detection -->
+    <div class="card">
+      <h2>Detection</h2>
+      <p class="desc">
+        The extension uses score-based detection to find OTP fields on any website automatically,
+        no whitelist needed. Use the blocklist below to silence it on specific domains.
+      </p>
+
+      <label for="blockedDomains">Blocked domains (one per line or comma-separated)</label>
+      <textarea id="blockedDomains" placeholder="example.com, another.org"></textarea>
+      <p class="desc" style="margin-top:6px;margin-bottom:0">
+        The overlay will never appear on these domains.
+      </p>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="saveDetection">Save</button>
+        <span class="feedback" id="detectionFeedback">Saved ✓</span>
+      </div>
+    </div>
+
+    <!-- Account -->
+    <div class="card">
+      <h2>Google Account</h2>
+      <p class="desc">The extension reads Gmail with <code>gmail.readonly</code> scope. It cannot send or modify emails.</p>
+
+      <div id="account-status" style="color:#6c7086;font-size:13px;margin-bottom:14px">Checking…</div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="btnLogin" hidden>Sign in with Google</button>
+        <button class="btn-danger" id="btnLogout" hidden>Sign out</button>
+        <span class="feedback" id="accountFeedback"></span>
+      </div>
+    </div>
+
+    <!-- Advanced -->
+    <div class="card">
+      <h2>Advanced / Troubleshooting</h2>
+      <p class="desc">
+        <strong>Chrome:</strong> Go to <code>chrome://extensions</code>, enable Developer Mode, load the
+        <code>Auto-Auth-Filler-v3</code> folder as an unpacked extension.<br><br>
+        <strong>Firefox:</strong> Go to <code>about:debugging#/runtime/this-firefox</code>, load temporary add-on,
+        select <code>manifest.json</code>.<br><br>
+        <strong>OAuth client:</strong> The registered client ID must have the extension's redirect URL added in
+        Google Cloud Console → APIs &amp; Services → Credentials. The redirect URL is shown in the browser
+        console when auth is first triggered.
+      </p>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

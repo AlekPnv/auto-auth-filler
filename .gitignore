@@ -1,0 +1,13 @@
+# Local OAuth configuration. Copy config.template.js to config.js and put your
+# own Client ID there. The template is committed; config.js never is.
+config.js
+
+# Packaging output
+dist/
+*.zip
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

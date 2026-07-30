@@ -1,0 +1,12 @@
+# Normalise line endings so Windows and Linux clones agree.
+# Text files are stored as LF in the repository and checked out natively.
+* text=auto eol=lf
+
+# package.bat must keep CRLF or cmd.exe can mis-handle it.
+*.bat text eol=crlf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.zip binary
+*.xpi binary
+*.crx binary
