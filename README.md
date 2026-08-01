@@ -171,6 +171,23 @@ maximum lengths and the surrounding form text. On a page where nothing scores
 above the detection threshold it does nothing at all, and makes no network
 request.
 
+## Tests
+
+The code extraction and OAuth logic are covered by a test suite that needs
+nothing installed. From the project root, with Node 18 or newer:
+
+```
+node --test
+```
+
+It checks code extraction against a corpus of real email shapes, including the
+German ones and the cases that used to fail, and verifies the PKCE
+implementation against the test vector in RFC 7636. If that last one ever fails,
+the whole sign-in flow is wrong, so treat it as the canary.
+
+Field detection is not covered, because it needs a live DOM. Change
+`scoreInput()` carefully.
+
 ## Building a release package
 
 Run `package.bat` on Windows or `package.sh` on macOS and Linux from the project
@@ -201,6 +218,7 @@ without it, so make sure it holds your own credentials before uploading anything
 ├── manifest.json        Manifest V3, with the gecko block for Firefox
 ├── make-manifest.js     Writes the per-browser manifest when packaging
 ├── package.bat / .sh    Packaging scripts for store submission
+├── test/                Test suite, run with `node --test`
 ├── icons/               Toolbar and store icons
 ├── site/                The public website and privacy policy
 ├── PRIVACY.md           Privacy policy

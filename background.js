@@ -33,6 +33,33 @@ const tokenStore = chrome.storage.session ?? chrome.storage.local;
 chrome.tabs.onUpdated.addListener(onAuthTabUpdated);
 chrome.tabs.onRemoved.addListener(onAuthTabRemoved);
 
+// Firefox implements the chrome namespace with callbacks, so calling these
+// without one returns undefined rather than a promise. Chrome accepts callbacks
+// too, so wrapping them gives one code path that is correct in both engines.
+function tabsCreate(properties) {
+  return new Promise((resolve) => chrome.tabs.create(properties, resolve));
+}
+
+function tabsRemove(tabId) {
+  return new Promise((resolve) => {
+    chrome.tabs.remove(tabId, () => {
+      // The tab may already be gone. Reading lastError marks it handled.
+      void chrome.runtime.lastError;
+      resolve();
+    });
+  });
+}
+
+function tabsSendMessage(tabId, message) {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tabId, message, () => {
+      // No content script in that tab is the normal case, not a failure.
+      void chrome.runtime.lastError;
+      resolve();
+    });
+  });
+}
+
 async function getFromLocal(keys) {
   return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
 }
@@ -142,7 +169,11 @@ async function postToken(params) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error_description || data.error || "Token request failed");
+    const error = new Error(data.error_description || data.error || "Token request failed");
+    // Keep the OAuth error code separate from the human-readable message, so
+    // callers can tell a rejected grant apart from a temporary failure.
+    error.code = data.error ?? null;
+    throw error;
   }
   return data;
 }
@@ -166,7 +197,10 @@ async function refreshAccessToken(refreshToken) {
   try {
     data = await postToken({ refresh_token: refreshToken, grant_type: "refresh_token" });
   } catch (err) {
-    await clearToken();
+    // Only a rejected grant is permanent. Discarding the refresh token after a
+    // dropped connection or a Google outage would sign the user out and send
+    // them back through consent for a problem that fixes itself.
+    if (err.code === "invalid_grant") await clearToken();
     throw err;
   }
   await saveTokens(data);
@@ -241,7 +275,7 @@ async function authenticateFirefox() {
   });
 
   try {
-    const tab = await chrome.tabs.create({ url: authUrl, active: true });
+    const tab = await tabsCreate({ url: authUrl, active: true });
     await setInTokenStore({ pendingAuthTabId: tab.id });
   } catch (err) {
     pendingAuthCallbacks.delete(reqId);
@@ -289,7 +323,7 @@ async function onAuthTabUpdated(tabId, changeInfo) {
   if (!url.startsWith(pendingAuthRedirectUri)) return;
 
   await clearPendingAuth();
-  chrome.tabs.remove(tabId).catch(() => {});
+  tabsRemove(tabId);
 
   const cb = pendingAuthCallbacks.get(pendingAuthReqId);
   pendingAuthCallbacks.delete(pendingAuthReqId);
@@ -325,7 +359,7 @@ async function onAuthTabRemoved(tabId) {
 function broadcastTokenReady() {
   chrome.tabs.query({}, (tabs) => {
     for (const tab of tabs) {
-      chrome.tabs.sendMessage(tab.id, { type: "AUTH_READY" }).catch(() => {});
+      tabsSendMessage(tab.id, { type: "AUTH_READY" });
     }
   });
 }
@@ -512,7 +546,7 @@ async function findLatestOTP(settings = {}) {
 
   const now = Date.now();
   const candidates = details
-    .filter(Boolean)
+    .filter((m) => m && Number.isFinite(parseInt(m.internalDate)))
     .sort((a, b) => parseInt(b.internalDate) - parseInt(a.internalDate));
 
   for (const msg of candidates) {
@@ -521,7 +555,7 @@ async function findLatestOTP(settings = {}) {
     if (ageMins < -1 || ageMins > maxAge) continue;
 
     const subject =
-      msg.payload.headers.find((h) => h.name.toLowerCase() === "subject")?.value ??
+      msg.payload?.headers?.find((h) => h.name.toLowerCase() === "subject")?.value ??
       "(no subject)";
 
     const bodyText = extractBody(msg.payload);
@@ -534,26 +568,52 @@ async function findLatestOTP(settings = {}) {
   return { otp: null };
 }
 
-// guard against multiple overlapping Gmail fetches triggered by rapid DOM mutations
+// Guards against overlapping Gmail fetches triggered by rapid DOM mutations.
+//
+// The lock also expires on its own. A lookup that needs interactive sign-in
+// waits on a consent tab the user may simply never finish, and without a
+// ceiling that one request would hold the lock for the rest of the session and
+// every later request would be told "busy".
+const FETCH_LOCK_TIMEOUT_MS = 120000;
+
 let isFetching = false;
+let fetchLockTimer = null;
+
+function acquireFetchLock() {
+  if (isFetching) return false;
+  isFetching = true;
+  clearTimeout(fetchLockTimer);
+  fetchLockTimer = setTimeout(() => { isFetching = false; }, FETCH_LOCK_TIMEOUT_MS);
+  return true;
+}
+
+function releaseFetchLock() {
+  isFetching = false;
+  clearTimeout(fetchLockTimer);
+}
+
+// Errors reach the overlay as text, which prefixes them with "Error: ".
+// Passing String(err) would render "Error: Error: ...".
+function errorText(err) {
+  return err?.message ?? String(err);
+}
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GET_OTP") {
-    if (isFetching) {
+    if (!acquireFetchLock()) {
       sendResponse({ status: "busy" });
       return false;
     }
-    isFetching = true;
     const tabId = sender.tab?.id;
 
     getFromLocal(["maxOTPAge"]).then((settings) => {
       return findLatestOTP({ ...settings, inputMaxLen: msg.inputMaxLen });
     }).then((result) => {
-      isFetching = false;
-      if (tabId) chrome.tabs.sendMessage(tabId, { type: "OTP_RESULT", ...result }).catch(() => {});
+      releaseFetchLock();
+      if (tabId) tabsSendMessage(tabId, { type: "OTP_RESULT", ...result });
     }).catch((err) => {
-      isFetching = false;
-      if (tabId) chrome.tabs.sendMessage(tabId, { type: "OTP_RESULT", otp: null, error: String(err) }).catch(() => {});
+      releaseFetchLock();
+      if (tabId) tabsSendMessage(tabId, { type: "OTP_RESULT", otp: null, error: errorText(err) });
     });
 
     sendResponse({ status: "searching" });
@@ -561,11 +621,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.type === "MANUAL_GET_OTP") {
-    if (isFetching) { sendResponse({ status: "busy" }); return false; }
-    isFetching = true;
+    if (!acquireFetchLock()) { sendResponse({ status: "busy" }); return false; }
     getFromLocal(["maxOTPAge"]).then((settings) => findLatestOTP(settings))
-      .then((result) => { isFetching = false; sendResponse(result); })
-      .catch((err) => { isFetching = false; sendResponse({ otp: null, error: String(err) }); });
+      .then((result) => { releaseFetchLock(); sendResponse(result); })
+      .catch((err) => { releaseFetchLock(); sendResponse({ otp: null, error: errorText(err) }); });
     return true;
   }
 

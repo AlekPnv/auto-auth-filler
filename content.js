@@ -3,9 +3,33 @@
 let overlay = null;
 let debounceTimer = null;
 let hasInitialized = false;
+let searchTimeout = null;
+let busyRetries = 0;
 
 // minimum score for an input to be treated as an OTP field
 const CONFIDENCE_THRESHOLD = 28;
+
+const BUSY_RETRY_MS = 1200;
+const MAX_BUSY_RETRIES = 5;
+const SEARCH_TIMEOUT_MS = 20000;
+
+// Firefox implements the chrome namespace with callbacks, so calling these
+// without one returns undefined rather than a promise. Chrome accepts callbacks
+// too, so wrapping them gives one code path that is correct in both engines.
+function storageGet(keys) {
+  return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+}
+
+function sendToBackground(message) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(message, (response) => {
+      // Reading lastError marks it as handled. The worker being asleep or gone
+      // is expected here, not a failure worth logging.
+      void chrome.runtime.lastError;
+      resolve(response);
+    });
+  });
+}
 
 // German compounds ("Bestätigungscode", "Einmalcode") have no word boundary
 // before "code", so \b alone never matches them. The bare `code\b` suffix
@@ -131,10 +155,9 @@ function shareCommonAncestor(els, maxDepth) {
 }
 
 async function isPageRelevant() {
-  const { blockedDomains = [] } = await chrome.storage.local.get("blockedDomains");
+  const { blockedDomains = [] } = (await storageGet("blockedDomains")) ?? {};
   const hostname = window.location.hostname.toLowerCase();
-  if (blockedDomains.some((d) => d.trim() && hostname.includes(d.trim()))) return false;
-  return true;
+  return !blockedDomains.some((d) => d.trim() && hostname.includes(d.trim()));
 }
 
 function createOverlay(inputs) {
@@ -163,7 +186,7 @@ function setOverlaySearching() {
   overlay.querySelector(".aaf-actions").hidden = true;
 }
 
-function setOverlayResult(otp, subject, ageMins, error) {
+async function setOverlayResult(otp, subject, ageMins, error) {
   if (!overlay) return;
 
   const statusEl = overlay.querySelector(".aaf-status");
@@ -207,12 +230,12 @@ function setOverlayResult(otp, subject, ageMins, error) {
   // Fill without waiting for a click, which is the point of the extension.
   // Password-type fields are excluded: those are the ones where a wrong guess
   // does real damage, so they always need a deliberate click.
-  chrome.storage.local.get("autoFill", ({ autoFill }) => {
-    if (autoFill === false) return;
-    const inputs = findOTPInputs();
-    const isPasswordField = inputs?.some((el) => (el.type || "").toLowerCase() === "password");
-    if (!isPasswordField) fillOTP(otp);
-  });
+  const { autoFill } = (await storageGet("autoFill")) ?? {};
+  if (autoFill === false) return;
+
+  const inputs = findOTPInputs();
+  const touchesPassword = inputs?.some((el) => (el.type || "").toLowerCase() === "password");
+  if (!touchesPassword) fillOTP(otp, inputs);
 }
 
 function removeOverlay() {
@@ -225,8 +248,8 @@ function truncate(str, max) {
   return str.length <= max ? str : str.slice(0, max - 1) + "…";
 }
 
-function fillOTP(otp) {
-  const inputs = findOTPInputs();
+async function fillOTP(otp, knownInputs) {
+  const inputs = knownInputs ?? findOTPInputs();
   if (!inputs || inputs.length === 0) return;
 
   if (inputs.length === 1) {
@@ -239,27 +262,31 @@ function fillOTP(otp) {
   }
 
   const statusEl = overlay?.querySelector(".aaf-status");
-  if (statusEl) statusEl.textContent = "✅ Filled!";
+  if (statusEl) statusEl.textContent = "✅ Filled";
 
-  chrome.storage.local.get("autoSubmit", ({ autoSubmit }) => {
-    if (autoSubmit !== false) {
-      setTimeout(() => {
-        const btn = findSubmitButton();
-        btn?.click();
-      }, 300);
-    }
-    setTimeout(removeOverlay, 1500);
-  });
+  const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
+  if (autoSubmit !== false) {
+    // Give the page a moment to react to the input events before submitting.
+    setTimeout(() => findSubmitButton(inputs[0])?.click(), 300);
+  }
+  setTimeout(removeOverlay, 1500);
 }
 
 function copyOTP(otp) {
-  navigator.clipboard.writeText(otp).then(() => {
-    const copyBtn = overlay?.querySelector(".aaf-copy");
-    if (copyBtn) {
+  const copyBtn = overlay?.querySelector(".aaf-copy");
+  navigator.clipboard
+    .writeText(otp)
+    .then(() => {
+      if (!copyBtn) return;
       copyBtn.textContent = "✅";
       setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = "📋"; }, 1500);
-    }
-  });
+    })
+    .catch(() => {
+      // Some pages deny clipboard access. Say so rather than appearing to work.
+      if (!copyBtn) return;
+      copyBtn.textContent = "✕";
+      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = "📋"; }, 1500);
+    });
 }
 
 // setting input.value directly does not trigger React/Vue/Angular change detection;
@@ -277,15 +304,23 @@ function setNativeValue(input, value) {
   input.focus();
 }
 
-function findSubmitButton() {
+function findSubmitButton(nearInput) {
   const keywords = [
     "verify", "verif", "submit", "confirm", "continue", "next", "login",
     "sign in", "weiter", "bestätigen", "anmelden", "fortfahren",
   ];
-  for (const el of document.querySelectorAll('button, input[type="submit"], [role="button"]')) {
-    if (el.offsetWidth === 0) continue;
-    const text = (el.innerText ?? el.textContent ?? el.value ?? "").toLowerCase();
-    if (keywords.some((kw) => text.includes(kw))) return el;
+
+  // Look inside the filled field's own form before falling back to the whole
+  // page. Searching the document first can find an unrelated "Continue"
+  // somewhere else, and auto-submit clicks whatever this returns.
+  const scopes = [nearInput?.closest("form"), document].filter(Boolean);
+
+  for (const scope of scopes) {
+    for (const el of scope.querySelectorAll('button, input[type="submit"], [role="button"]')) {
+      if (el.offsetWidth === 0) continue;
+      const text = (el.innerText ?? el.textContent ?? el.value ?? "").toLowerCase();
+      if (keywords.some((kw) => text.includes(kw))) return el;
+    }
   }
   return null;
 }
@@ -303,14 +338,7 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-const BUSY_RETRY_MS = 1200;
-const MAX_BUSY_RETRIES = 5;
-const SEARCH_TIMEOUT_MS = 20000;
-
-let searchTimeout = null;
-let busyRetries = 0;
-
-function requestOTP() {
+async function requestOTP() {
   const inputs = findOTPInputs();
   const inputMaxLen = inputs?.[0] ? parseInt(inputs[0].maxLength ?? 0) || undefined : undefined;
 
@@ -321,20 +349,18 @@ function requestOTP() {
     setOverlayResult(null, null, null, "Timed out waiting for the background worker");
   }, SEARCH_TIMEOUT_MS);
 
-  chrome.runtime
-    .sendMessage({ type: "GET_OTP", inputMaxLen })
-    .then((res) => {
-      // The worker refuses overlapping fetches. Back off and ask again rather
-      // than dropping the request silently.
-      if (res?.status !== "busy") return;
-      if (busyRetries++ < MAX_BUSY_RETRIES) {
-        setTimeout(requestOTP, BUSY_RETRY_MS);
-      } else {
-        clearTimeout(searchTimeout);
-        setOverlayResult(null, null, null, "Background worker stayed busy");
-      }
-    })
-    .catch(() => {});
+  const response = await sendToBackground({ type: "GET_OTP", inputMaxLen });
+
+  // The worker refuses overlapping fetches. Back off and ask again rather than
+  // dropping the request silently, which would leave the overlay searching.
+  if (response?.status !== "busy") return;
+
+  if (busyRetries++ < MAX_BUSY_RETRIES) {
+    setTimeout(requestOTP, BUSY_RETRY_MS);
+  } else {
+    clearTimeout(searchTimeout);
+    setOverlayResult(null, null, null, "Background worker stayed busy");
+  }
 }
 
 async function init() {

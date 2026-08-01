@@ -5,6 +5,22 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-07-31
+
+### Fixed
+
+- **Several `chrome.*` calls were used as if they returned promises.** Firefox implements the `chrome` namespace with callbacks, so those calls return `undefined` there. Two of them mattered: `isPageRelevant()` destructured the result and threw, which would stop the content script before it ever looked at the page, and the Firefox sign-in flow read `tab.id` off the same kind of result. Every such call now goes through a small wrapper that passes a callback, which both engines accept.
+- A failed token refresh discarded the refresh token whatever the cause. A dropped connection or a Google outage would therefore sign the user out and send them back through the consent screen for a problem that fixes itself. Only a rejected grant clears it now, distinguished by the OAuth `invalid_grant` code rather than by matching on the message text.
+- Auto-submit searched the whole page for a button and clicked the first plausible match, which could be an unrelated "Continue" elsewhere. It now looks inside the filled field's own form first. This matters more since filling became automatic, because nothing else stands between a misdetection and a click.
+- The busy lock had no expiry. A lookup that opened a consent tab the user never finished would hold it for the rest of the session, and every later request would be answered "busy". The lock now expires after two minutes.
+- Errors reached the overlay as `String(err)`, which renders as "Error: Error: ...". Only the message is sent now.
+- A malformed Gmail response could throw on a missing `payload` or an unparseable `internalDate`. Both are guarded.
+- The clipboard button silently did nothing when a page denied clipboard access. It now shows that the copy failed.
+
+### Added
+
+- A test suite covering code extraction and the OAuth logic, run with `node --test` and needing nothing installed. It checks extraction against a corpus of real email shapes, including the German ones and the cases that used to fail, and verifies PKCE against the test vector in RFC 7636.
+
 ## [3.3.0] - 2026-07-31
 
 ### Added
@@ -76,6 +92,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.3.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.1
 [3.3.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.0
 [3.2.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.2.0
 [3.1.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.1.1
