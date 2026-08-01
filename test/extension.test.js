@@ -372,3 +372,42 @@ test("the redirect is parsed from the query string", () => {
   const junk = bg.call('extractAuthFromUrl("not a url")');
   assert.strictEqual(junk.code, null);
 });
+
+test("hyphenated alphanumeric codes are read, as Slack sends them", () => {
+  // Slack's code is "BYF-4UI". Every capture class stopped at the hyphen, so
+  // "BYF" was three characters and failed the minimum length, and the
+  // hyphenated pattern accepted digits only. The mail was found and the code
+  // was visible in it, and nothing could match it.
+  const slack = [
+    "Slack confirmation code: BYF-4UI",
+    "",
+    "Confirm your email address",
+    "Here is your confirmation code. You can copy it into the open browser",
+    "window or click the link below to confirm this email address.",
+    "BYF-4UI",
+    "CONFIRM AND SIGN IN",
+  ].join("\n");
+
+  assert.strictEqual(bg.extractOTP(slack), "BYF4UI");
+  // Slack shows six boxes, so the hyphen has to be stripped before the length
+  // is judged or the code would be refused for not fitting.
+  assert.strictEqual(bg.extractOTP(slack, undefined, 6), "BYF4UI");
+});
+
+test("hyphens do not let ordinary text through", async (t) => {
+  const notCodes = [
+    ["hyphenated words", "Your code is well-known to everyone"],
+    ["a date", "Your code expires on 2026-08-01"],
+    ["no digits at all", "Please use the well-worn path"],
+  ];
+
+  for (const [name, body] of notCodes) {
+    await t.test(name, () => {
+      const found = bg.extractOTP(body);
+      assert.ok(
+        found === null || /\d/.test(found),
+        `matched ${JSON.stringify(found)}, which is not code-like`,
+      );
+    });
+  }
+});

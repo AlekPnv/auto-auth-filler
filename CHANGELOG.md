@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0] - 2026-08-02
+
+### Fixed
+
+- **Hyphenated alphanumeric codes were unmatchable, which is what Slack sends.** Slack's code looks like `BYF-4UI`. Every capture class stopped at the hyphen, so `BYF` was three characters and fell below the four-character minimum, and the hyphenated pattern accepted digits only. The mail was found and the code was plainly visible in it, and no pattern could reach it. Codes may now carry hyphens inside, which are stripped before the length is judged, and the hyphenated pattern has an alphanumeric form that requires both a letter and a digit so ordinary hyphenated words stay out.
+
 ## [3.8.4] - 2026-07-31
 
 ### Fixed
@@ -234,6 +240,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.9.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.9.0
 [3.8.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.4
 [3.8.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.3
 [3.8.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.2

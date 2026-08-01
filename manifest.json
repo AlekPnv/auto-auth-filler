@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Auto Auth Filler",
-  "version": "3.8.4",
+  "version": "3.9.0",
   "description": "Universally detects and fills OTP/2FA codes from Gmail on any website.",
   "homepage_url": "https://auto-auth-filler.vercel.app",
   "permissions": [

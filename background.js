@@ -501,6 +501,12 @@ function stripHtml(html) {
 const SECURITY_LABEL = globalThis.AAF_TERMS.securityLabel;
 const GENERIC_LABEL = globalThis.AAF_TERMS.genericLabel;
 
+// Four to ten characters that may carry hyphens inside, which extractOTP
+// strips. Slack sends "BYF-4UI", so a class that stops dead at the hyphen sees
+// three characters and throws away a perfectly good code. It has to begin and
+// end on an alphanumeric, or a trailing dash would be swallowed too.
+const HYPHENATED_CODE = "([A-Za-z0-9][A-Za-z0-9-]{2,8}[A-Za-z0-9])";
+
 // lettersOnlyOk marks the one pattern where a code containing no digits is
 // accepted. Codes are not always numeric: Battle.net sends "RXCZMK". But
 // [A-Za-z0-9]{6,8} also matches any ordinary word, so the relaxation is tied to
@@ -512,7 +518,7 @@ function otpPatterns() {
       // A security label, then the code after a colon. A few words may sit in
       // between, as in Steam's "Steam Guard code you need to login: K7Q2M".
       re: new RegExp(
-        "(?:" + SECURITY_LABEL + ")(?:\\W+\\w+){0,4}?[^\\S\\n]*:\\s{0,10}([A-Za-z0-9]{4,10})(?![A-Za-z0-9])",
+        "(?:" + SECURITY_LABEL + ")(?:\\W+\\w+){0,4}?[^\\S\\n]*:\\s{0,10}" + HYPHENATED_CODE + "(?![A-Za-z0-9-])",
         "gi",
       ),
       lettersOnlyOk: true,
@@ -525,7 +531,7 @@ function otpPatterns() {
       // subject of "Your verification code" followed by a body beginning with
       // any word would make that word look like a presented value.
       re: new RegExp(
-        "(?:" + SECURITY_LABEL + ")[^\\n]{0,40}\\n[^\\S\\n]*([A-Za-z0-9]{4,10})[^\\S\\n]*(?=\\n|$)",
+        "(?:" + SECURITY_LABEL + ")[^\\n]{0,40}\\n[^\\S\\n]*" + HYPHENATED_CODE + "[^\\S\\n]*(?=\\n|$)",
         "gi",
       ),
       lettersOnlyOk: true,
@@ -536,13 +542,20 @@ function otpPatterns() {
       // The old separator class excluded letters, so "Ihr Einmalcode lautet
       // 934812" matched no label at all and fell through to the bare digits.
       re: new RegExp(
-        "(?:" + SECURITY_LABEL + "|" + GENERIC_LABEL + ")(?:\\W+\\w+){0,4}?\\W{0,20}([A-Za-z0-9]{4,10})",
+        "(?:" + SECURITY_LABEL + "|" + GENERIC_LABEL + ")(?:\\W+\\w+){0,4}?\\W{0,20}" + HYPHENATED_CODE + "(?![A-Za-z0-9-])",
         "gi",
       ),
       lettersOnlyOk: false,
     },
     { re: /\bG-([0-9]{6})\b/gi, lettersOnlyOk: false },
     { re: /\b([0-9]{3})-([0-9]{3})\b/g, lettersOnlyOk: false },
+    {
+      // The same shape with letters in it, which is what Slack sends. Requiring
+      // both a letter and a digit keeps ordinary hyphenated words out.
+      re: /\b([A-Za-z0-9]{3})-([A-Za-z0-9]{3})\b/g,
+      lettersOnlyOk: false,
+      requireMixed: true,
+    },
     { re: /\b([0-9]{6,8})\b/g, lettersOnlyOk: false },
     {
       // Unlabelled alphanumeric, down to four characters to reach Steam Guard's
