@@ -674,7 +674,9 @@ async function findLatestOTP(settings = {}) {
   }
 
   const messageIds = (listData.messages ?? []).map((m) => m.id);
-  if (messageIds.length === 0) return { otp: null };
+  if (messageIds.length === 0) {
+    return { otp: null, reason: "no mail matched the search" };
+  }
 
   // fetch all candidates in parallel, then sort newest-first
   // Gmail's list order is by relevance, not chronological, so we must sort ourselves
@@ -689,6 +691,12 @@ async function findLatestOTP(settings = {}) {
 
   const pageTokens = siteTokens(settings.siteHost);
   let unmatched = null;
+
+  // Why nothing came back is worth reporting. From outside, mail that never
+  // arrived, mail with no code in it and a code that does not fit the field
+  // all look identical, and each needs a different fix.
+  let examined = 0;
+  let wrongLength = false;
 
   for (const msg of candidates) {
     const sentAt = parseInt(msg.internalDate);
@@ -713,8 +721,17 @@ async function findLatestOTP(settings = {}) {
     // Newlines keep the three sources from running into one another and
     // forming a match that exists in neither.
     const combined = subject + "\n" + (msg.snippet ?? "") + "\n" + bodyText;
+    examined++;
+
     const otp = extractOTP(combined, settings.inputMaxLen, settings.exactLength);
-    if (!otp) continue;
+    if (!otp) {
+      // Running it again without the length requirement separates "there is
+      // no code here" from "the code does not fit these boxes".
+      if (settings.exactLength && extractOTP(combined, settings.inputMaxLen)) {
+        wrongLength = true;
+      }
+      continue;
+    }
 
     // "Battle.net <noreply@battle.net>" reduced to "Battle.net", for the overlay.
     const sender = from.replace(/<[^>]*>/, "").replace(/"/g, "").trim() || from;
@@ -730,7 +747,13 @@ async function findLatestOTP(settings = {}) {
     if (!unmatched) unmatched = { ...result, matchesSite: false };
   }
 
-  return unmatched ?? { otp: null };
+  if (unmatched) return unmatched;
+
+  let reason = `${examined} message(s) checked, no code found in them`;
+  if (examined === 0) reason = "mail matched the search but all of it was too old";
+  else if (wrongLength) reason = `a code was found but it does not fit ${settings.exactLength} boxes`;
+
+  return { otp: null, reason };
 }
 
 // Guards against overlapping Gmail fetches triggered by rapid DOM mutations.

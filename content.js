@@ -307,7 +307,9 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   if (!error && (!otp || alreadyTried) && session) {
     if (Date.now() < session.deadline) {
-      trace(alreadyTried ? "already tried that code, waiting for a newer one" : "nothing found yet, waiting");
+      trace(alreadyTried
+        ? "already tried that code, waiting for a newer one"
+        : `nothing yet: ${details.reason ?? "no reason given"}`);
       statusEl.textContent = alreadyTried
         ? "Waiting for a newer code…"
         : "Waiting for a new code…";

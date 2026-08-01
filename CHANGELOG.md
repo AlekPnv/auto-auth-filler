@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.3] - 2026-07-31
+
+### Added
+
+- A lookup that finds nothing now says why. Mail that never arrived, mail with no code in it and a code that does not fit the field all looked identical from outside, and each needs a different fix. The trace now reports which of them happened, including how many messages were checked.
+
 ## [3.8.2] - 2026-07-31
 
 ### Fixed
@@ -222,6 +228,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.8.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.3
 [3.8.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.2
 [3.8.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.1
 [3.8.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.0
