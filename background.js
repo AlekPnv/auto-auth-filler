@@ -455,29 +455,95 @@ function decodeBase64Url(data) {
   }
 }
 
+const HTML_ENTITIES = {
+  "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">",
+  "&quot;": '"', "&#39;": "'", "&apos;": "'", "&zwnj;": "", "&shy;": "",
+};
+
 function stripHtml(html) {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    // Block boundaries become line breaks rather than spaces. Marketing mail
+    // almost always presents the code alone in its own heading, cell or
+    // paragraph, and collapsing everything to spaces destroys the only signal
+    // that it stands apart from the sentence before it.
+    .replace(/<\/?(?:p|div|br|tr|td|th|h[1-6]|li|ul|ol|table|section|header|footer|blockquote)\b[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ");
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&[a-z]+;|&#\d+;/gi, (e) => HTML_ENTITIES[e.toLowerCase()] ?? " ")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n");
 }
 
 // Patterns run in priority order: labeled > Google prefix > hyphenated >
 // bare digits > alphanumeric. All are /g so matchAll() can walk every
 // occurrence; a fresh array per call keeps their lastIndex from leaking
 // between invocations.
+// Labels that can only mean a security code. Drawn from the wording the large
+// services actually use: Blizzard and Epic say "security code", Steam says
+// "Steam Guard code", Twitch, Discord and GitHub say "verification code",
+// Amazon says "one-time password".
+const SECURITY_LABEL =
+  "verification\\s*code|security\\s*code|authentication\\s*code|auth\\s*code|" +
+  "login\\s*code|log[- ]?in\\s*code|sign[- ]?in\\s*code|access\\s*code|" +
+  "confirmation\\s*code|guard\\s*code|recovery\\s*code|" +
+  "temporary\\s*(?:code|password)|one[- ]?time\\s*(?:password|code|pin)|" +
+  "passcode|2fa\\s*code|two[- ]?factor\\s*code|" +
+  "einmalcode|bestätigungscode|sicherheitscode|verifizierungscode|" +
+  "anmeldecode|zugangscode|authentifizierungscode";
+
+// Labels that are just as common in marketing as in security mail.
+const GENERIC_LABEL = "code|otp|pin|token";
+
+// lettersOnlyOk marks the one pattern where a code containing no digits is
+// accepted. Codes are not always numeric: Battle.net sends "RXCZMK". But
+// [A-Za-z0-9]{6,8} also matches any ordinary word, so the relaxation is tied to
+// layout rather than to spelling or capitalisation. Capitalisation would be the
+// wrong test, since a lowercase code is equally valid.
 function otpPatterns() {
   return [
-    // The label and the code may be separated by up to three words. The old
-    // separator class excluded letters, so "Ihr Einmalcode lautet 934812"
-    // never matched here and fell through to the bare-digit pattern.
-    /(?:code|otp|pin|passcode|one[- ]?time\s*(?:password|code)?|verification\s*code|bestätigungscode|einmalcode|sicherheitscode|token)(?:\W+\w+){0,3}?\W{0,20}([A-Z0-9]{4,10})/gi,
-    /\bG-([0-9]{6})\b/gi,
-    /\b([0-9]{3})-([0-9]{3})\b/g,
-    /\b([0-9]{6,8})\b/g,
-    /(?<![A-Z0-9])([A-Z0-9]{6,8})(?![A-Z0-9])/gi,
+    {
+      // A security label presenting the code as a value: after a colon, or on
+      // its own line. A few words may sit in between, as in Steam's "Steam
+      // Guard code you need to login: K7Q2M", but the colon or line break is
+      // required. "Your verification code below expires soon" therefore does
+      // not qualify, and neither does "Use code SUMMER for 20% off".
+      re: new RegExp(
+        "(?:" + SECURITY_LABEL + ")(?:\\W+\\w+){0,4}?\\W{0,8}?[:\\n\\r]\\W{0,8}?([A-Za-z0-9]{4,10})(?![A-Za-z0-9])",
+        "gi",
+      ),
+      lettersOnlyOk: true,
+    },
+    {
+      // Any label, with up to four words in between. A digit is required here.
+      //
+      // The old separator class excluded letters, so "Ihr Einmalcode lautet
+      // 934812" matched no label at all and fell through to the bare digits.
+      re: new RegExp(
+        "(?:" + SECURITY_LABEL + "|" + GENERIC_LABEL + ")(?:\\W+\\w+){0,4}?\\W{0,20}([A-Za-z0-9]{4,10})",
+        "gi",
+      ),
+      lettersOnlyOk: false,
+    },
+    { re: /\bG-([0-9]{6})\b/gi, lettersOnlyOk: false },
+    { re: /\b([0-9]{3})-([0-9]{3})\b/g, lettersOnlyOk: false },
+    { re: /\b([0-9]{6,8})\b/g, lettersOnlyOk: false },
+    {
+      // Unlabelled alphanumeric, down to four characters to reach Steam Guard's
+      // five. Requiring both a letter and a digit is what makes that safe: it
+      // excludes ordinary words and bare numbers such as a year or a price,
+      // which the numeric patterns above already handle when they are codes.
+      re: /(?<![A-Za-z0-9])([A-Za-z0-9]{4,8})(?![A-Za-z0-9])/gi,
+      lettersOnlyOk: false,
+      requireMixed: true,
+    },
   ];
+}
+
+function looksLikeCode(code, { lettersOnlyOk, requireMixed }) {
+  if (requireMixed) return /[A-Za-z]/.test(code) && /[0-9]/.test(code);
+  return /\d/.test(code) || lettersOnlyOk;
 }
 
 function extractOTP(text, maxLen) {
@@ -491,14 +557,17 @@ function extractOTP(text, maxLen) {
 
   const candidates = [];
 
-  for (const p of otpPatterns()) {
+  for (const pattern of otpPatterns()) {
+    const { re } = pattern;
     // Walk every occurrence, not just the first. A single word without digits
     // ("continue") used to consume the pattern and hide a real code later in
     // the same line.
-    for (const m of clean.matchAll(p)) {
+    for (const m of clean.matchAll(re)) {
       const raw = m[2] ? m[1] + m[2] : (m[1] ?? m[0]);
-      const code = raw.toUpperCase().replace(/-/g, "");
-      if (!/\d/.test(code)) continue; // must contain at least one digit
+      // Keep the original case. Most sites compare codes case-insensitively,
+      // but not all, and upper-casing a lowercase code would break those.
+      const code = raw.replace(/-/g, "");
+      if (!looksLikeCode(code, pattern)) continue;
 
       if (lengthHint && code.length === lengthHint) return code;
       candidates.push(code);
@@ -559,7 +628,11 @@ async function findLatestOTP(settings = {}) {
       "(no subject)";
 
     const bodyText = extractBody(msg.payload);
-    const combined = (msg.snippet ?? "") + " " + bodyText;
+    // The subject is searched too. Plenty of services put the code in it, as in
+    // "123456 is your verification code", and some put it nowhere else.
+    // Newlines keep the three sources from running into one another and
+    // forming a match that exists in neither.
+    const combined = subject + "\n" + (msg.snippet ?? "") + "\n" + bodyText;
     const otp = extractOTP(combined, settings.inputMaxLen);
 
     if (otp) return { otp, subject, ageMins: Math.round(ageMins) };

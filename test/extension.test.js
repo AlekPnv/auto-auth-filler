@@ -70,6 +70,88 @@ test("extractOTP finds the code in real-world emails", async (t) => {
   }
 });
 
+test("extractOTP reads the wording the large services actually use", async (t) => {
+  // Each of these mirrors the phrasing of a real provider. They differ enough
+  // that a single pattern cannot cover them, which is why the label list is
+  // long and the separator rules are loose.
+  const providers = [
+    ["Blizzard", "Here is your security code:\nRXCZMK", "RXCZMK"],
+    ["Steam Guard", "Here is the Steam Guard code you need to login: K7Q2M", "K7Q2M"],
+    ["Epic Games", "Your security code is: 481902", "481902"],
+    ["Twitch", "Your Twitch verification code is 123456", "123456"],
+    ["Discord", "Your Discord verification code is 934812", "934812"],
+    ["Amazon", "Your one-time password (OTP) is 552104", "552104"],
+    ["Microsoft", "Use this code for Microsoft account security: 1234567", "1234567"],
+    ["Apple", "Your Apple Account code is: 682145", "682145"],
+    ["PayPal", "Your security code is 998877", "998877"],
+    ["Netflix", "Your verification code: 4821", "4821"],
+    ["GitHub", "your GitHub verification code is 556677", "556677"],
+    ["Google", "G-417293 is your Google verification code.", "417293"],
+  ];
+
+  for (const [name, body, expected] of providers) {
+    await t.test(name, () => assert.strictEqual(bg.extractOTP(body), expected));
+  }
+});
+
+test("stripHtml keeps the code separate from the sentence before it", () => {
+  // Providers usually put the code alone in a heading or a bold cell, with no
+  // colon anywhere. Collapsing the markup to spaces would join it to the
+  // preceding text and lose the only sign that it stands on its own.
+  const html =
+    "<html><body><p>Your verification code</p><h1><b>RXCZMK</b></h1>" +
+    "<p>expires in 10 minutes</p></body></html>";
+
+  const text = bg.call(`stripHtml(${JSON.stringify(html)})`);
+  assert.match(text, /verification code\nRXCZMK/, "block boundaries must become line breaks");
+  assert.strictEqual(bg.extractOTP(text), "RXCZMK");
+});
+
+test("stripHtml decodes the entities that surround a code", () => {
+  const text = bg.call('stripHtml("<p>Security code:&nbsp;<b>4821</b></p>")');
+  assert.ok(!text.includes("&nbsp;"), "entities must not survive into the text");
+  assert.strictEqual(bg.extractOTP(text), "4821");
+});
+
+test("extractOTP handles codes of every shape", async (t) => {
+  // Codes are not always numeric and not always upper case. Battle.net sends
+  // "RXCZMK"; requiring a digit used to match it and then throw it away.
+  const shapes = [
+    ["letters only, upper case", "Here is your security code:\nRXCZMK", "RXCZMK"],
+    ["letters only, lower case", "Here is your security code:\nrxczmk", "rxczmk"],
+    ["letters only, mixed case", "Your verification code: RxCzMk", "RxCzMk"],
+    ["digits only", "Your verification code: 481902", "481902"],
+    ["alphanumeric", "Your security code: 7FK2QA", "7FK2QA"],
+    ["code on its own line", "Your one-time password\n\nQ4RT9B", "Q4RT9B"],
+  ];
+
+  for (const [name, body, expected] of shapes) {
+    await t.test(name, () => assert.strictEqual(bg.extractOTP(body), expected));
+  }
+});
+
+test("extractOTP preserves the case it found", () => {
+  // Most sites compare case-insensitively, but not all. Upper-casing a
+  // lowercase code would break those, so the original is filled verbatim.
+  assert.strictEqual(bg.extractOTP("Your security code: abcdef"), "abcdef");
+  assert.strictEqual(bg.extractOTP("Your security code: AbC123"), "AbC123");
+});
+
+test("extractOTP rejects letters-only text that is not a presented code", async (t) => {
+  // The relaxation is tied to layout: a security label presenting a value after
+  // a colon or on its own line. Everything else still needs a digit.
+  const notCodes = [
+    ["ordinary prose after a generic label", "Enter this code to continue with setup"],
+    ["promotional code", "Use code SUMMER for 20% off your next order"],
+    ["label with no presented value", "Your verification code below expires soon"],
+    ["nothing code-like at all", "Thanks for signing up. Welcome aboard."],
+  ];
+
+  for (const [name, body] of notCodes) {
+    await t.test(name, () => assert.strictEqual(bg.extractOTP(body), null));
+  }
+});
+
 test("extractOTP keeps looking after a match without digits", () => {
   // The alphanumeric pattern matches the word "continue" first. Abandoning the
   // pattern at that point used to lose the code entirely.

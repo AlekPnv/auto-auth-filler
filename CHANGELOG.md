@@ -5,6 +5,21 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-07-31
+
+### Fixed
+
+- **Codes without digits were found and then thrown away.** Blizzard sends codes like `RXCZMK`, and a rule requiring at least one digit discarded them, so the extension reported that no code existed while it was sitting in the inbox. That rule was there to stop the unlabelled pattern matching ordinary words, so it could not simply be removed. A code without digits is now accepted when a security-specific label presents it as a value, after a colon or on its own line. Capitalisation deliberately plays no part: a lowercase code is just as valid, and `Use code SUMMER for 20% off` is still rejected because "code" alone is not a security label.
+- **The subject line was never searched.** It was already being read, for display in the overlay, but only the snippet and body were scanned. Several services put the code in the subject and some put it nowhere else.
+- **HTML structure was destroyed before matching.** Every run of whitespace was collapsed to a single space, so a code presented alone in a heading or a bold table cell ran into the sentence before it and no longer looked separate. Block-level tags now become line breaks, and HTML entities are decoded so a code wrapped in `&nbsp;` is still readable.
+- Codes are filled in the case they were written in. They were previously upper-cased, which would break any site that compares them exactly.
+- Steam Guard codes are five characters, below the six-character floor of the unlabelled pattern, so they were missed whenever the label did not match. That pattern now starts at four characters and requires both a letter and a digit, which keeps ordinary words and bare numbers out.
+
+### Changed
+
+- The label list now covers the wording the large services actually use, including "Steam Guard code", "login code", "sign-in code", "access code", "confirmation code", "one-time password", "2FA code" and the German `Anmeldecode` and `Zugangscode`. Up to four words may sit between the label and the code, which is what phrasings like Steam's "the Steam Guard code you need to login:" require.
+- The test suite now checks the exact phrasing used by Blizzard, Steam, Epic Games, Twitch, Discord, Amazon, Microsoft, Apple, PayPal, Netflix, GitHub and Google, so a change to the patterns cannot quietly break one of them.
+
 ## [3.3.1] - 2026-07-31
 
 ### Fixed
@@ -92,6 +107,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.4.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.0
 [3.3.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.1
 [3.3.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.0
 [3.2.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.2.0
