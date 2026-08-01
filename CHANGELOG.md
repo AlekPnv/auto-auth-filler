@@ -5,6 +5,13 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.4] - 2026-07-31
+
+### Fixed
+
+- A form that has just rejected a code often disables or hides its boxes for a moment while it talks to its server, and a disabled field is not a detectable one. Filling in that window returned silently and dropped the code, which looks identical to the extension doing nothing. It now waits and looks again, up to five times.
+- Missing vocabulary now fails loudly. Destructuring it happens on the first line of the content script, so if `vocabulary.js` were ever absent or loaded in the wrong order the script would die before anything ran: no overlay, no trace, and an error nobody would connect to the cause. It logs what is wrong and how to fix it instead.
+
 ## [3.7.3] - 2026-07-31
 
 ### Fixed
@@ -191,6 +198,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.7.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.4
 [3.7.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.3
 [3.7.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.2
 [3.7.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.1

@@ -73,6 +73,19 @@ function sendToBackground(message) {
 // about a card, because a card PIN is never an emailed code. PASSWORD_FIELD_OK
 // is the short list that allows a type="password" field to be considered at
 // all, so an ordinary password box is never touched.
+// Fail loudly if it did not load. Destructuring undefined throws on the first
+// line of this file, which kills the content script before anything runs: no
+// overlay, no trace, no error anyone would connect to the cause. The manifest
+// lists vocabulary.js ahead of this file, so reaching here means the packaging
+// or the manifest is wrong.
+if (!globalThis.AAF_TERMS) {
+  console.error(
+    "[Auto Auth Filler] vocabulary.js did not load before content.js. " +
+      "Check the content_scripts js order in manifest.json and that " +
+      "vocabulary.js is present in the package.",
+  );
+}
+
 const {
   nameStrong: NAME_STRONG,
   nameMedium: NAME_MEDIUM,
@@ -82,7 +95,7 @@ const {
   paymentContext: PAYMENT_CONTEXT,
   passwordFieldOk: PASSWORD_FIELD_OK,
   submitButtons: SUBMIT_BUTTONS,
-} = globalThis.AAF_TERMS;
+} = globalThis.AAF_TERMS ?? {};
 
 // every text label associated with an input, lowercased, as one string
 function labelBag(el) {
@@ -353,9 +366,22 @@ function truncate(str, max) {
   return str.length <= max ? str : str.slice(0, max - 1) + "…";
 }
 
-async function fillOTP(otp, knownInputs) {
+async function fillOTP(otp, knownInputs, attempt = 0) {
   const inputs = knownInputs ?? findOTPInputs();
-  if (!inputs || inputs.length === 0) return;
+
+  // A form that has just rejected a code often disables or hides its boxes for
+  // a moment while it talks to its server, and a disabled field is not a
+  // detectable one. Returning here would drop the fill in silence, which is
+  // exactly the shape of the bug this is meant to cure, so wait and look again.
+  if (!inputs || inputs.length === 0) {
+    if (attempt < 5) {
+      trace(`no field to fill, retrying (${attempt + 1})`);
+      setTimeout(() => fillOTP(otp, null, attempt + 1), 400);
+    } else {
+      trace("gave up: no fillable field");
+    }
+    return;
+  }
 
   // Remember it before entering it. If the site rejects this code, the next
   // lookup must not offer the same one again.
