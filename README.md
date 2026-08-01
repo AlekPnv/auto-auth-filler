@@ -188,6 +188,31 @@ the whole sign-in flow is wrong, so treat it as the canary.
 Field detection is not covered, because it needs a live DOM. Change
 `scoreInput()` carefully.
 
+## Adding a language
+
+English and German are supported. Every language-dependent word lives in
+`vocabulary.js`, and adding one means editing that file and nothing else.
+
+Language matters in four places, and the first is the one that catches people
+out:
+
+1. **The Gmail search query.** This is a gate, not a filter. A message the query
+   does not match is never fetched, so no pattern further down can recover it.
+2. **The labels that locate the code** inside the message.
+3. **The words that identify a code field** on a web page.
+4. **The text on the submit button**, used by auto-submit.
+
+Entries are regular expression fragments rather than literal strings, so a term
+can cover spelling variants. German shows why that matters: compounds like
+`Bestätigungscode` have no word boundary before `code`, and the same word is
+often written `bestaetigungscode` in form markup, so both spellings are listed.
+
+For a language in a non-Latin script, read the note at the top of the file
+first. JavaScript's `\b` is defined against `\w`, which is ASCII only, so every
+Cyrillic or Greek letter counts as a non-word character and `\b` does not behave
+the way it does in English. Those languages need Unicode property escapes and
+the `u` flag.
+
 ## Building a release package
 
 Run `package.bat` on Windows or `package.sh` on macOS and Linux from the project
@@ -212,6 +237,7 @@ without it, so make sure it holds your own credentials before uploading anything
 ├── config.js            Your credentials. Git-ignored; create it from the template
 ├── config.template.js   Template and instructions for your own OAuth client
 ├── content.js           Field detection, overlay, filling
+├── vocabulary.js        Every language-dependent word, in one table
 ├── popup.html / .js     Toolbar popup
 ├── options.html / .js   Settings page
 ├── styles.css           Overlay styling, isolated from the host page

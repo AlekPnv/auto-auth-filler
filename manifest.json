@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Auto Auth Filler",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "description": "Universally detects and fills OTP/2FA codes from Gmail on any website.",
   "permissions": [
     "identity",
@@ -16,7 +16,7 @@
   ],
   "background": {
     "service_worker": "background.js",
-    "scripts": ["config.js", "background.js"]
+    "scripts": ["config.js", "vocabulary.js", "background.js"]
   },
   "action": {
     "default_popup": "popup.html",
@@ -34,6 +34,7 @@
         "<all_urls>"
       ],
       "js": [
+        "vocabulary.js",
         "content.js"
       ],
       "css": [

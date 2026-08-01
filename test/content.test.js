@@ -36,6 +36,8 @@ function loadContentScript() {
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  // The manifest lists vocabulary.js before content.js; mirror that here.
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "vocabulary.js"), "utf8"), sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "content.js"), "utf8"), sandbox);
 
   // Top-level `let` creates a lexical binding rather than a property of the

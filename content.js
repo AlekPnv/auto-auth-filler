@@ -54,25 +54,25 @@ function sendToBackground(message) {
   });
 }
 
-// German compounds ("Bestätigungscode", "Einmalcode") have no word boundary
-// before "code", so \b alone never matches them. The bare `code\b` suffix
-// catches the whole family without listing every compound.
-const NAME_STRONG = /\b(otp|one.?time|passcode)\b|(?:einmal|bestätigungs|bestaetigungs|verifizierungs|sicherheits)code/;
-const NAME_MEDIUM = /\b(code|verify|token|pin|auth)\b|code\b|\b(bestätigen|bestaetigen|verifizieren)\b/;
-const NAME_WEAK   = /\b(verif|confirm|secure|access)\b|\b(sicherheit|zugang)/;
-
-const FORM_STRONG = /\b(otp|one.?time|passcode|verify|verification)\b|(?:einmal|bestätigungs|bestaetigungs)code/;
-const FORM_WEAK   = /\b(code|confirm|token|pin)\b|code\b|\b(bestätigen|bestaetigen)\b/;
-
-// A card PIN is not an emailed code. Used only to demote fields that scored
-// on "pin" alone - a field that also says "code" or "otp" keeps its points.
-const PAYMENT_CONTEXT = /\b(card|karten?|kreditkarten?|payment|zahlung|iban|cvv|cvc|debit)\b/;
-
-// Some banks render one-time codes as type="password". Such a field is only
-// considered when it names itself unambiguously, so a real password box is
-// never touched. "passcode" is deliberately absent: sites use it for actual
-// passwords.
-const PASSWORD_FIELD_OK = /\b(otp|one.?time)\b|(?:einmal|bestätigungs|bestaetigungs|verifizierungs)code|verification\s*code/;
+// All of these come from vocabulary.js, which the manifest loads ahead of this
+// file and which holds every language-dependent word in the extension. Add a
+// language there, not here.
+//
+// NAME_STRONG through FORM_WEAK are the scoring tiers used by scoreInput().
+// PAYMENT_CONTEXT demotes a field that scored on "pin" alone when the form is
+// about a card, because a card PIN is never an emailed code. PASSWORD_FIELD_OK
+// is the short list that allows a type="password" field to be considered at
+// all, so an ordinary password box is never touched.
+const {
+  nameStrong: NAME_STRONG,
+  nameMedium: NAME_MEDIUM,
+  nameWeak: NAME_WEAK,
+  formStrong: FORM_STRONG,
+  formWeak: FORM_WEAK,
+  paymentContext: PAYMENT_CONTEXT,
+  passwordFieldOk: PASSWORD_FIELD_OK,
+  submitButtons: SUBMIT_BUTTONS,
+} = globalThis.AAF_TERMS;
 
 // every text label associated with an input, lowercased, as one string
 function labelBag(el) {
@@ -357,10 +357,7 @@ function setNativeValue(input, value) {
 }
 
 function findSubmitButton(nearInput) {
-  const keywords = [
-    "verify", "verif", "submit", "confirm", "continue", "next", "login",
-    "sign in", "weiter", "bestätigen", "anmelden", "fortfahren",
-  ];
+  const keywords = SUBMIT_BUTTONS;
 
   // Look inside the filled field's own form before falling back to the whole
   // page. Searching the document first can find an unrelated "Continue"

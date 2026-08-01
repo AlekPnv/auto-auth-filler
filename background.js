@@ -15,6 +15,12 @@ if (!globalThis.AAF_CONFIG && typeof importScripts === "function") {
   }
 }
 
+// Firefox loads vocabulary.js through manifest background.scripts, ahead of
+// this file. A Chromium service worker gets only the one entry point.
+if (!globalThis.AAF_TERMS && typeof importScripts === "function") {
+  importScripts("vocabulary.js");
+}
+
 const CLIENT_ID = globalThis.AAF_CONFIG?.CLIENT_ID ?? "";
 const CLIENT_SECRET = globalThis.AAF_CONFIG?.CLIENT_SECRET ?? "";
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
@@ -407,11 +413,11 @@ function extractAuthFromUrl(url) {
   }
 }
 
-const GMAIL_QUERY =
-  'newer_than:1d (subject:code OR subject:verify OR subject:security OR subject:login ' +
-  'OR subject:confirmation OR subject:authentication OR subject:account ' +
-  'OR "verification" OR "one-time" OR "OTP" OR "2FA" OR "two-factor" OR "passcode" ' +
-  'OR "Einmalcode" OR "Authentifizierung" OR "Bestätigungscode")';
+// Assembled from vocabulary.js. This query is a gate rather than a filter: a
+// message it does not match is never fetched, so no amount of pattern matching
+// further down can recover it. A new language needs its terms here before
+// anything else will work.
+const GMAIL_QUERY = globalThis.AAF_TERMS.gmailQuery;
 
 async function fetchGmail(endpoint, token) {
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${endpoint}`, {
@@ -480,21 +486,10 @@ function stripHtml(html) {
 // bare digits > alphanumeric. All are /g so matchAll() can walk every
 // occurrence; a fresh array per call keeps their lastIndex from leaking
 // between invocations.
-// Labels that can only mean a security code. Drawn from the wording the large
-// services actually use: Blizzard and Epic say "security code", Steam says
-// "Steam Guard code", Twitch, Discord and GitHub say "verification code",
-// Amazon says "one-time password".
-const SECURITY_LABEL =
-  "verification\\s*code|security\\s*code|authentication\\s*code|auth\\s*code|" +
-  "login\\s*code|log[- ]?in\\s*code|sign[- ]?in\\s*code|access\\s*code|" +
-  "confirmation\\s*code|guard\\s*code|recovery\\s*code|" +
-  "temporary\\s*(?:code|password)|one[- ]?time\\s*(?:password|code|pin)|" +
-  "passcode|2fa\\s*code|two[- ]?factor\\s*code|" +
-  "einmalcode|bestätigungscode|sicherheitscode|verifizierungscode|" +
-  "anmeldecode|zugangscode|authentifizierungscode";
-
-// Labels that are just as common in marketing as in security mail.
-const GENERIC_LABEL = "code|otp|pin|token";
+// Both come from vocabulary.js, which holds every language-dependent word in
+// the extension. Add a language there, not here.
+const SECURITY_LABEL = globalThis.AAF_TERMS.securityLabel;
+const GENERIC_LABEL = globalThis.AAF_TERMS.genericLabel;
 
 // lettersOnlyOk marks the one pattern where a code containing no digits is
 // accepted. Codes are not always numeric: Battle.net sends "RXCZMK". But

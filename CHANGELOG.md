@@ -5,6 +5,18 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.1] - 2026-07-31
+
+### Changed
+
+- Every language-dependent word now lives in one file, `vocabulary.js`, loaded by both the content script and the background worker. Language previously mattered in four separate places across two files: the Gmail search query, the labels that locate a code in the message, the words that identify a code field on a page, and the text on the submit button. Adding a language meant finding and editing all four. It is now a single entry in one table.
+- The file documents what the next contributor needs to know, including that the Gmail query is a gate rather than a filter, since a message it does not match is never fetched and no pattern further down can recover it. It also records that JavaScript's `` is defined against ASCII, so a language in a non-Latin script needs Unicode property escapes rather than the Latin patterns bent around it.
+- German gained the transliterated `bestaetigungscode` spelling as a mail label. Form markup frequently avoids non-ASCII characters, and only the umlaut spelling was listed before.
+
+### Added
+
+- Tests covering the composition itself, so a language cannot be added to the table and silently fail to reach the Gmail query, the submit button list, or the field patterns.
+
 ## [3.5.0] - 2026-07-31
 
 ### Fixed
@@ -125,6 +137,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.5.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.1
 [3.5.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.0
 [3.4.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.1
 [3.4.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.0

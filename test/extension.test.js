@@ -42,6 +42,9 @@ function loadBackground(config = { CLIENT_ID: "test-id", CLIENT_SECRET: "test-se
 
   // config.js normally does this, and background.js reads it at load time.
   sandbox.AAF_CONFIG = config;
+  // vocabulary.js holds every language-dependent term and must load first,
+  // exactly as the manifest arranges in the browser.
+  vm.runInContext(fs.readFileSync(path.join(ROOT, "vocabulary.js"), "utf8"), sandbox);
   vm.runInContext(fs.readFileSync(path.join(ROOT, "background.js"), "utf8"), sandbox);
 
   return {

@@ -19,6 +19,7 @@ FIREFOX_ZIP="auto-auth-filler-firefox.zip"
 FILES=(
   manifest.json
   config.js
+  vocabulary.js
   background.js
   content.js
   options.html
