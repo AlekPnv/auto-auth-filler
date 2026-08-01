@@ -307,7 +307,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   if (!error && (!otp || alreadyTried) && session) {
     if (Date.now() < session.deadline) {
-      trace(alreadyTried ? `already tried ${otp}, waiting for a newer one` : "nothing found yet, waiting");
+      trace(alreadyTried ? "already tried that code, waiting for a newer one" : "nothing found yet, waiting");
       statusEl.textContent = alreadyTried
         ? "Waiting for a newer code…"
         : "Waiting for a new code…";
@@ -450,7 +450,10 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
     });
   }
 
-  trace(`filling ${otp}`);
+  // The code itself is deliberately not logged. Which step ran is what makes
+  // the trace useful; the value is a live credential and belongs nowhere near
+  // the console of an arbitrary page.
+  trace(`filling a ${otp.length} character code`);
 
   const statusEl = overlay?.querySelector(".aaf-status");
   if (statusEl) statusEl.textContent = "✅ Filled";

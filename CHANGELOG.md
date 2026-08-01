@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1] - 2026-07-31
+
+### Changed
+
+- The debug trace no longer prints the code. Two lines carried the live value into the console of whatever page was open. A site's own scripts cannot read the console, so nothing could steal it that way, but it would appear in any devtools export or screen recording, and which step ran is what makes the trace useful rather than the value itself. It now reports the length.
+
 ## [3.8.0] - 2026-07-31
 
 ### Fixed
@@ -210,6 +216,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.8.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.1
 [3.8.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.0
 [3.7.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.4
 [3.7.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.3
