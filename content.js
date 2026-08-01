@@ -488,5 +488,26 @@ const observer = new MutationObserver(() => {
   debounceTimer = setTimeout(init, 450);
 });
 
-observer.observe(document.documentElement, { childList: true, subtree: true });
-init();
+// The script is injected into every frame, because a code field can sit inside
+// one: bank 3-D Secure forms are the common case. Most frames on a page are
+// advertising, though, and watching those for the lifetime of the page buys
+// nothing.
+//
+// The filter is deliberately timid. It drops frames with no area at all, and
+// the banner and skyscraper shapes, which cannot hold a code form. It keeps
+// medium rectangles, because at that size an ad and a real payment form are
+// the same shape and refusing to run is the more expensive mistake.
+function frameCouldHoldCodeField() {
+  if (window.top === window) return true;
+
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (width === 0 || height === 0) return false;
+
+  return width >= 250 && height >= 120;
+}
+
+if (frameCouldHoldCodeField()) {
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  init();
+}

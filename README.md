@@ -185,8 +185,14 @@ German ones and the cases that used to fail. It also verifies the PKCE
 implementation against the test vector in RFC 7636. If that last one ever fails,
 the whole sign-in flow is wrong, so treat it as the canary.
 
-Field detection is not covered, because it needs a live DOM. Change
-`scoreInput()` carefully.
+Field detection is covered too. `content.js` is loaded against a DOM stub and
+scored with plain objects exposing only what `scoreInput()` reads, which is
+enough to test the scoring tiers, the German compounds and the card-PIN
+demotion without a browser.
+
+What is not covered is anything needing real layout or real event handling:
+whether an element is visible, whether a site's own script fights the fill, and
+the OAuth flow end to end. Those need a browser and a real account.
 
 ## Adding a language
 
