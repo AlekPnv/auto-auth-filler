@@ -19,7 +19,7 @@
 // included: JavaScript's \b is defined against \w, which is ASCII only. Every
 // Cyrillic letter counts as a non-word character, so \b(код)\b does not behave
 // like \b(code)\b. Use Unicode property escapes with the u flag, for example
-// (?<!\p{L})код(?!\p{L}), and give that language its own entries rather than
+// (?<!\p{L})код(?!\p{L}). Give that language its own entries rather than
 // trying to bend the Latin ones around it.
 
 globalThis.AAF_VOCAB = {

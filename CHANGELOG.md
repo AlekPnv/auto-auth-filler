@@ -20,13 +20,13 @@ Domain comparison allows for one brand owning several domains, so `steamcommunit
 
 ### Changed
 
-- Every language-dependent word now lives in one file, `vocabulary.js`, loaded by both the content script and the background worker. Language previously mattered in four separate places across two files: the Gmail search query, the labels that locate a code in the message, the words that identify a code field on a page, and the text on the submit button. Adding a language meant finding and editing all four. It is now a single entry in one table.
+- Every language-dependent word now lives in one file, `vocabulary.js`, loaded by both the content script and the background worker. Language previously mattered in four separate places across two files: the Gmail search query, the labels that locate a code in the message, the words that identify a code field on a page and the text on the submit button. Adding a language meant finding and editing all four. It is now a single entry in one table.
 - The file documents what the next contributor needs to know, including that the Gmail query is a gate rather than a filter, since a message it does not match is never fetched and no pattern further down can recover it. It also records that JavaScript's `` is defined against ASCII, so a language in a non-Latin script needs Unicode property escapes rather than the Latin patterns bent around it.
 - German gained the transliterated `bestaetigungscode` spelling as a mail label. Form markup frequently avoids non-ASCII characters, and only the umlaut spelling was listed before.
 
 ### Added
 
-- Tests covering the composition itself, so a language cannot be added to the table and silently fail to reach the Gmail query, the submit button list, or the field patterns.
+- Tests covering the composition itself, so a language cannot be added to the table and silently fail to reach the Gmail query, the submit button list or the field patterns.
 
 ## [3.5.0] - 2026-07-31
 
@@ -44,7 +44,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 ### Fixed
 
-- **The overlay reopened in a loop after filling a code.** Writing into the field is itself a DOM change, so the mutation observer woke, found the same field again, and started another lookup. That closed the overlay, reopened it on "Searching Gmail for code", filled again, and repeated for as long as the page stayed open. Two rules stop it: a field that already holds a value needs nothing, and no second lookup may begin within fifteen seconds of the last one. Clearing the field on purpose still triggers a fresh search once that time has passed, which is what someone retrying a rejected code expects.
+- **The overlay reopened in a loop after filling a code.** Writing into the field is itself a DOM change, so the mutation observer woke, found the same field again and started another lookup. That closed the overlay, reopened it on "Searching Gmail for code", filled again and repeated for as long as the page stayed open. Two rules stop it: a field that already holds a value needs nothing, and no second lookup may begin within fifteen seconds of the last one. Clearing the field on purpose still triggers a fresh search once that time has passed, which is what someone retrying a rejected code expects.
 
 ## [3.4.0] - 2026-07-31
 
@@ -65,7 +65,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 ### Fixed
 
-- **Several `chrome.*` calls were used as if they returned promises.** Firefox implements the `chrome` namespace with callbacks, so those calls return `undefined` there. Two of them mattered: `isPageRelevant()` destructured the result and threw, which would stop the content script before it ever looked at the page, and the Firefox sign-in flow read `tab.id` off the same kind of result. Every such call now goes through a small wrapper that passes a callback, which both engines accept.
+- **Several `chrome.*` calls were used as if they returned promises.** Firefox implements the `chrome` namespace with callbacks, so those calls return `undefined` there. Two of them mattered: `isPageRelevant()` destructured the result and threw, which would stop the content script before it ever looked at the page. The Firefox sign-in flow read `tab.id` off the same kind of result. Every such call now goes through a small wrapper that passes a callback, which both engines accept.
 - A failed token refresh discarded the refresh token whatever the cause. A dropped connection or a Google outage would therefore sign the user out and send them back through the consent screen for a problem that fixes itself. Only a rejected grant clears it now, distinguished by the OAuth `invalid_grant` code rather than by matching on the message text.
 - Auto-submit searched the whole page for a button and clicked the first plausible match, which could be an unrelated "Continue" elsewhere. It now looks inside the filled field's own form first. This matters more since filling became automatic, because nothing else stands between a misdetection and a click.
 - The busy lock had no expiry. A lookup that opened a consent tab the user never finished would hold it for the rest of the session, and every later request would be answered "busy". The lock now expires after two minutes.
@@ -75,7 +75,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 ### Added
 
-- A test suite covering code extraction and the OAuth logic, run with `node --test` and needing nothing installed. It checks extraction against a corpus of real email shapes, including the German ones and the cases that used to fail, and verifies PKCE against the test vector in RFC 7636.
+- A test suite covering code extraction and the OAuth logic, run with `node --test` and needing nothing installed. It checks extraction against a corpus of real email shapes, including the German ones and the cases that used to fail. It also verifies PKCE against the test vector in RFC 7636.
 
 ## [3.3.0] - 2026-07-31
 
@@ -87,7 +87,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 ### Changed
 
 - The store listing, README, setup guide, privacy policy and website all described the old behaviour, where nothing was entered without a click. All of them now describe what the extension actually does.
-- Reviewer notes added to `STORE_LISTING.md`, covering the unverified-app warning a reviewer will hit, how to test with a supplied account, the absence of any build step, why `config.js` contains a client secret, and the justification for `<all_urls>`.
+- Reviewer notes added to `STORE_LISTING.md`, covering the unverified-app warning a reviewer will hit, how to test with a supplied account, the absence of any build step, why `config.js` contains a client secret and the justification for `<all_urls>`.
 
 ## [3.2.0] - 2026-07-30
 
@@ -125,7 +125,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 - Card PIN fields are no longer offered a Gmail code. `pin` still scores, but a field that scored on `pin` alone is demoted when the surrounding form mentions a card, payment or IBAN.
 - Code fields rendered as `type="password"`, as some banks do, are now detected. They are only considered when the field names itself unambiguously (`otp`, `one-time`, `Einmalcode`, `Bestätigungscode` or `verification code`), so ordinary password boxes are never touched. `passcode` is deliberately excluded, because sites use it for real passwords.
 - The OAuth client ID moved out of `background.js` into a git-ignored `config.js`, created from `config.template.js`. `background.js` is now committed like any other file. Previously the whole file was excluded from version control, which left a clone with no background script at all.
-- The overlay's action row is built with DOM calls instead of `innerHTML`. The code was already escaped, but add-on review flags every dynamic `innerHTML` assignment, and `escapeHtml()` is no longer needed.
+- The overlay's action row is built with DOM calls instead of `innerHTML`. The code was already escaped, but add-on review flags every dynamic `innerHTML` assignment and `escapeHtml()` is no longer needed.
 - Declared `data_collection_permissions: { required: ["none"] }`, which addons.mozilla.org requires for new submissions. The extension transmits nothing: email bodies are matched in memory and discarded.
 - Minimum Firefox raised from 128 to 140, the first version that supports that key. Firefox for Android needs 142.
 
@@ -137,12 +137,12 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 ### Added
 
-- Score-based OTP and 2FA field detection that works on any site without a domain whitelist or per-site setup. Fields are recognized by attribute names, input mode, label text, and surrounding page context.
+- Score-based OTP and 2FA field detection that works on any site without a domain whitelist or per-site setup. Fields are recognized by attribute names, input mode, label text and surrounding page context.
 - Google sign-in using the `gmail.readonly` scope, with the OAuth token stored in session storage so it clears automatically when the browser closes.
 - An on-page overlay that shows the detected code with "Fill & Submit" and "Copy" actions.
-- Support for a wide range of code formats: standard 6 to 8 digit codes, alphanumeric codes, hyphenated formats, Google-style "G-XXXXXX" codes, and split-digit input boxes.
-- Configurable auto-submit after fill, a maximum code age filter (default 10 minutes), and a per-domain blocklist.
-- Cross-browser support for Chrome, Edge, Brave, Opera, Vivaldi, and Firefox 128 and newer.
+- Support for a wide range of code formats: standard 6 to 8 digit codes, alphanumeric codes, hyphenated formats, Google-style "G-XXXXXX" codes and split-digit input boxes.
+- Configurable auto-submit after fill, a maximum code age filter (default 10 minutes) and a per-domain blocklist.
+- Cross-browser support for Chrome, Edge, Brave, Opera, Vivaldi and Firefox 128 and newer.
 
 ### Notes
 

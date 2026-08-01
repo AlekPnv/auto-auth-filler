@@ -8,7 +8,7 @@ you are using. This policy explains exactly what it touches and what it does
 not.
 
 The short version: everything happens inside your browser. There is no server,
-no account, no analytics, and nothing is ever sent anywhere except directly to
+no account and no analytics. Nothing is ever sent anywhere except directly to
 Google's own API in order to read your mail on your behalf.
 
 ## What the extension accesses
@@ -18,12 +18,12 @@ permission, `https://www.googleapis.com/auth/gmail.readonly`. It searches your
 ten most recent messages from the last day that look like verification emails,
 and reads them only to locate a numeric or alphanumeric code.
 
-It cannot send, delete, modify, or label mail. That is enforced by Google, not
+It cannot send, delete, modify or label mail. That is enforced by Google, not
 merely by this extension's own code. The permission granted does not allow it.
 
 **Page content on sites you visit.** To recognise a one-time-code field, the
 extension inspects form fields on the page: their names, labels, input types,
-maximum lengths, and the surrounding wording. This inspection happens locally
+maximum lengths and the surrounding wording. This inspection happens locally
 and its results are never recorded or transmitted. It runs on all sites because
 a verification field can appear on any site; there is no list of supported
 websites to maintain.
@@ -47,21 +47,20 @@ permissions list on your Google account.
 ## What is *not* stored
 
 Email content is never written to disk. Message bodies exist only in memory,
-for as long as it takes to run the code-matching patterns over them, and are
+for as long as it takes to run the code-matching patterns over them and are
 discarded immediately afterwards. Codes themselves are not saved either. There
-is no history, no cache, and no log of what was read.
+is no history, no cache and no log of what was read.
 
 ## What is transmitted
 
 Requests go to exactly three Google endpoints, and nowhere else:
 
 - `accounts.google.com`, to show you Google's sign-in and consent screen
-- `oauth2.googleapis.com`, to exchange and refresh tokens, and to revoke them
-  when you sign out
+- `oauth2.googleapis.com`, to exchange, refresh and revoke tokens
 - `gmail.googleapis.com`, to search and read your messages
 
 There is no server operated by the developer of this extension. No analytics,
-no telemetry, no crash reporting, no advertising, and no third-party service of
+no telemetry, no crash reporting, no advertising and no third-party service of
 any kind receives your data. Nothing about your usage is collected.
 
 ## Limited Use disclosure
@@ -74,7 +73,7 @@ including the Limited Use requirements.
 Specifically, Google user data is used only to provide the extension's single
 user-facing feature, which is locating a verification code and entering it.
 It is not transferred to anyone, not used for advertising, not used to train
-any model, and not read by any human.
+any model and not read by any human.
 
 ## Your control
 

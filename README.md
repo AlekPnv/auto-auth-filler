@@ -10,21 +10,21 @@ on every site with no per-site setup.
 Switching between your inbox and a login form to copy a six-digit code is a small
 but constant annoyance, and it adds up if you use two-factor authentication
 often. This extension removes that step. It recognises the input field, retrieves
-the code from your inbox, and fills it in without you leaving the page.
+the code from your inbox and fills it in without you leaving the page.
 
 ## Features
 
 - Recognises one-time-code fields on effectively any website using a scoring
   system based on field attributes, input mode, label text and the wording of the
   surrounding form. There is no list of supported sites to maintain.
-- Reads recent Gmail messages, read-only, and extracts the code with pattern
+- Reads recent Gmail messages (read-only) and extracts the code with pattern
   matching that covers plain numeric codes, alphanumeric codes, hyphenated
-  formats, Google's "G-XXXXXX" style, and split single-digit boxes.
+  formats, Google's "G-XXXXXX" style and split single-digit boxes.
 - Understands German forms as well as English ones.
 - Enters the code as soon as it finds one and shows a small overlay naming the
   email it came from, with a copy button. Automatic filling can be switched off,
   and password fields always wait for a click.
-- Optional auto-submit after filling, a configurable maximum code age, and a
+- Optional auto-submit after filling, a configurable maximum code age and a
   per-domain blocklist.
 
 ## Browser support
@@ -48,7 +48,7 @@ Firefox 140 is the floor because that is the first version supporting the
    recognises it and asks the background worker for a code.
 3. The background worker searches your ten most recent Gmail messages from the
    last day, keeps only those newer than the maximum code age (ten minutes by
-   default), and extracts the code from the first match. Plain text is preferred,
+   default) and extracts the code from the first match. Plain text is preferred,
    and HTML-only mail has its tags stripped first.
 4. The code is entered into the field, and the overlay shows which email it came
    from. If you have turned automatic filling off, the overlay waits for you to
@@ -163,7 +163,7 @@ Limited Use disclosure. In summary:
 - No data leaves your browser. There is no external server, no analytics and no
   telemetry.
 - Email bodies are processed in memory only, for as long as it takes to look for a
-  code, and are never written to disk or logged.
+  code and are never written to disk or logged.
 
 The content script runs on all sites because a verification field can appear on
 any site. It inspects only form-field metadata: names, labels, input types,
@@ -181,7 +181,7 @@ node --test
 ```
 
 It checks code extraction against a corpus of real email shapes, including the
-German ones and the cases that used to fail, and verifies the PKCE
+German ones and the cases that used to fail. It also verifies the PKCE
 implementation against the test vector in RFC 7636. If that last one ever fails,
 the whole sign-in flow is wrong, so treat it as the canary.
 
