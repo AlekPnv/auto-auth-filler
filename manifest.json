@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Auto Auth Filler",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "description": "Universally detects and fills OTP/2FA codes from Gmail on any website.",
+  "homepage_url": "https://auto-auth-filler.vercel.app",
   "permissions": [
     "identity",
     "storage",
-    "tabs",
-    "activeTab"
+    "tabs"
   ],
   "host_permissions": [
     "https://www.googleapis.com/*",
@@ -50,7 +50,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "auto-auth-filler@extension",
+      "id": "auto-auth-filler@alekpnv.github.io",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": ["none"]

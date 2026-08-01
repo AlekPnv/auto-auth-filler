@@ -200,7 +200,16 @@ function createOverlay(inputs) {
 
   document.documentElement.appendChild(overlay);
   overlay.querySelector(".aaf-close").addEventListener("click", removeOverlay);
+
+  // Escape dismisses it, the same as anything else that appears over a page.
+  // The event is not consumed, so the page still receives it.
+  document.addEventListener("keydown", onOverlayKeydown);
+
   busyRetries = 0; // fresh overlay, fresh retry budget
+}
+
+function onOverlayKeydown(event) {
+  if (event.key === "Escape") removeOverlay();
 }
 
 function setOverlaySearching() {
@@ -301,6 +310,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
 function removeOverlay() {
   clearTimeout(searchTimeout);
+  document.removeEventListener("keydown", onOverlayKeydown);
   // Closing the overlay abandons the lookup. Leaving the session open would let
   // a queued poll reopen it after the user dismissed it on purpose.
   session = null;

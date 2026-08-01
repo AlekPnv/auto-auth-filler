@@ -419,6 +419,16 @@ function extractAuthFromUrl(url) {
 // anything else will work.
 const GMAIL_QUERY = globalThis.AAF_TERMS.gmailQuery;
 
+// While waiting for a code the content script polls every few seconds. Without
+// narrowing, every poll re-lists the same ten messages and downloads all their
+// bodies again, which for a two-minute wait is around three hundred requests
+// for mail that has not changed. Gmail's after: takes epoch seconds, so a poll
+// that finds nothing new costs one empty list call and no downloads at all.
+function gmailQueryFrom(notBefore) {
+  if (!notBefore) return GMAIL_QUERY;
+  return `${GMAIL_QUERY} after:${Math.floor(notBefore / 1000)}`;
+}
+
 async function fetchGmail(endpoint, token) {
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${endpoint}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -642,14 +652,14 @@ function extractOTP(text, maxLen, exactLength) {
 async function findLatestOTP(settings = {}) {
   const maxAge = settings.maxOTPAge ?? 10;
 
+  const query = gmailQueryFrom(settings.notBefore);
+  const listEndpoint = `messages?q=${encodeURIComponent(query)}&maxResults=10`;
+
   let token = await getAuthToken();
   let listData;
 
   try {
-    listData = await fetchGmail(
-      `messages?q=${encodeURIComponent(GMAIL_QUERY)}&maxResults=10`,
-      token,
-    );
+    listData = await fetchGmail(listEndpoint, token);
   } catch (e) {
     if (e.message === "UNAUTHORIZED") {
       // Token expired mid-request. Drop just the access token so getAuthToken()
@@ -657,10 +667,7 @@ async function findLatestOTP(settings = {}) {
       // the grant and force the user through consent again for nothing.
       await clearAccessToken();
       token = await getAuthToken();
-      listData = await fetchGmail(
-        `messages?q=${encodeURIComponent(GMAIL_QUERY)}&maxResults=10`,
-        token,
-      );
+      listData = await fetchGmail(listEndpoint, token);
     } else {
       throw e;
     }

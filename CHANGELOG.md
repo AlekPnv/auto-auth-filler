@@ -5,6 +5,19 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2026-07-31
+
+### Changed
+
+- **The Firefox add-on ID is now `auto-auth-filler@alekpnv.github.io`.** The previous `auto-auth-filler@extension` was a placeholder on a domain nobody owns, and the ID becomes the add-on's permanent identity once it is published: changing it later creates a separate add-on and strands existing users. `identity.getRedirectURL()` derives the redirect URI from this ID, so the new URI must be registered in Google Cloud Console before sign-in works again on Firefox.
+- **Polling no longer re-downloads mail that has not changed.** While waiting for a code the content script asks every four seconds, and each ask re-listed the same ten messages and fetched all their bodies again, roughly three hundred requests over a two-minute wait. The query now carries Gmail's `after:` with the same cutoff the lookup already uses, so a poll with nothing new costs one empty list call and no downloads. The per-message check stays as well, since `after:` works to the second and clock skew is real.
+- Dropped the `activeTab` permission. Nothing used it: the popup talks to the background over runtime messaging and no code injects scripts or reads a tab's URL. The `tabs` permission stays and is genuinely required, because `tabs.onUpdated` only reports `changeInfo.url` when it is granted and the Firefox sign-in flow reads that field to catch the OAuth redirect.
+
+### Added
+
+- `homepage_url` in the manifest, so both store listings link to the project site.
+- Escape closes the overlay. The key is not consumed, so the page still receives it.
+
 ## [3.6.0] - 2026-07-31
 
 ### Fixed
@@ -148,6 +161,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.7.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.0
 [3.6.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.6.0
 [3.5.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.1
 [3.5.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.0
