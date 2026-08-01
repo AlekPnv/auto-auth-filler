@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2026-07-31
+
+### Fixed
+
+- **The overlay reopened in a loop after filling a code.** Writing into the field is itself a DOM change, so the mutation observer woke, found the same field again, and started another lookup. That closed the overlay, reopened it on "Searching Gmail for code", filled again, and repeated for as long as the page stayed open. Two rules stop it: a field that already holds a value needs nothing, and no second lookup may begin within fifteen seconds of the last one. Clearing the field on purpose still triggers a fresh search once that time has passed, which is what someone retrying a rejected code expects.
+
 ## [3.4.0] - 2026-07-31
 
 ### Fixed
@@ -107,6 +113,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.4.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.1
 [3.4.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.0
 [3.3.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.1
 [3.3.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.0

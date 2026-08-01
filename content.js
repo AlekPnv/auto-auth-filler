@@ -2,9 +2,16 @@
 
 let overlay = null;
 let debounceTimer = null;
-let hasInitialized = false;
 let searchTimeout = null;
 let busyRetries = 0;
+let lastSearchStartedAt = 0;
+
+// Filling a field is itself a DOM change, so the observer wakes immediately
+// afterwards and finds the same field again. Without a guard the overlay would
+// close, reopen, search, fill, and close again for as long as the page stayed
+// open. Two conditions stop that: a field holding a value needs nothing, and no
+// second search may start within the cooldown.
+const RESEARCH_COOLDOWN_MS = 15000;
 
 // minimum score for an input to be treated as an OTP field
 const CONFIDENCE_THRESHOLD = 28;
@@ -363,31 +370,35 @@ async function requestOTP() {
   }
 }
 
+function shouldSearch(inputs) {
+  if (!inputs || inputs.length === 0) return false;
+  if (Date.now() - lastSearchStartedAt < RESEARCH_COOLDOWN_MS) return false;
+
+  // A field that already holds a value needs nothing, whether this extension
+  // filled it or the user typed it. Once the cooldown passes, clearing the
+  // field deliberately does start a fresh search, which is what someone
+  // retrying a failed code expects.
+  return inputs.some((el) => !el.value);
+}
+
 async function init() {
+  if (overlay) return;
   if (!(await isPageRelevant())) return;
 
   const inputs = findOTPInputs();
-  if (!inputs || inputs.length === 0 || overlay) return;
+  if (!shouldSearch(inputs)) return;
 
-  hasInitialized = true;
+  lastSearchStartedAt = Date.now();
   createOverlay(inputs);
   requestOTP();
 }
 
-// debounced so rapid DOM mutations from SPAs do not spam init() on every micro-update
+// Debounced, because single-page apps rewrite the DOM constantly and every
+// mutation would otherwise start another detection pass.
 const observer = new MutationObserver(() => {
   if (overlay) return;
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    if (!hasInitialized) init();
-    else if (!overlay) {
-      const inputs = findOTPInputs();
-      if (inputs?.length) {
-        createOverlay(inputs);
-        requestOTP();
-      }
-    }
-  }, 450);
+  debounceTimer = setTimeout(init, 450);
 });
 
 observer.observe(document.documentElement, { childList: true, subtree: true });
