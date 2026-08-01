@@ -24,11 +24,62 @@ const RESEARCH_COOLDOWN_MS = 15000;
 // user more time than filling nothing.
 const CODE_LOOKBACK_MS = 60000;
 
-// Codes already put into this page. A code the site rejected must never be
-// entered a second time: doing so leaves the field holding a value that cannot
-// work, and the old rule that a filled field needs no search then meant nothing
-// ever recovered.
+// Codes already entered on this site. A code the site rejected must never be
+// entered again: doing so leaves the field holding a value that cannot work.
+//
+// This has to outlive the page. Sites commonly submit a code by navigating
+// rather than by XHR, and Blizzard re-renders the form with the rejected code
+// still in the boxes. The content script is destroyed and rebuilt, so anything
+// held only in memory is gone, and the new script sees a full field holding a
+// code it has never seen and assumes the user typed it. Keeping the record in
+// extension storage, keyed by hostname, is what survives that.
 const attemptedCodes = new Set();
+
+const ATTEMPT_TTL_MS = 10 * 60 * 1000;
+
+function attemptStorageKey() {
+  return `attempted:${window.location.hostname}`;
+}
+
+// A short fingerprint rather than the code itself, so nothing readable is
+// written to storage. FNV-1a is not a security measure and is not treated as
+// one: a six-character code has too little entropy for a hash to hide it. It
+// simply avoids keeping verification codes in plain text on disk.
+function fingerprint(code) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < code.length; i++) {
+    hash ^= code.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function freshAttempts(entries) {
+  const now = Date.now();
+  return (entries ?? []).filter((e) => e && now - e.at < ATTEMPT_TTL_MS);
+}
+
+async function loadAttempts() {
+  const key = attemptStorageKey();
+  const stored = (await storageGet(key)) ?? {};
+  for (const entry of freshAttempts(stored[key])) attemptedCodes.add(entry.fp);
+}
+
+async function rememberAttempt(code) {
+  const fp = fingerprint(code);
+  attemptedCodes.add(fp);
+
+  const key = attemptStorageKey();
+  const stored = (await storageGet(key)) ?? {};
+  const entries = freshAttempts(stored[key]);
+
+  if (!entries.some((e) => e.fp === fp)) entries.push({ fp, at: Date.now() });
+  await storageSet({ [key]: entries });
+}
+
+function wasAttempted(code) {
+  return code !== null && code !== undefined && attemptedCodes.has(fingerprint(code));
+}
 
 // While waiting for mail that has not arrived, ask again on this interval, for
 // at most this long.
@@ -53,6 +104,10 @@ function storageGet(keys) {
   return new Promise((resolve) => chrome.storage.local.get(keys, resolve));
 }
 
+function storageSet(items) {
+  return new Promise((resolve) => chrome.storage.local.set(items, resolve));
+}
+
 function sendToBackground(message) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(message, (response) => {
@@ -73,11 +128,10 @@ function sendToBackground(message) {
 // about a card, because a card PIN is never an emailed code. PASSWORD_FIELD_OK
 // is the short list that allows a type="password" field to be considered at
 // all, so an ordinary password box is never touched.
-// Fail loudly if it did not load. Destructuring undefined throws on the first
-// line of this file, which kills the content script before anything runs: no
-// overlay, no trace, no error anyone would connect to the cause. The manifest
-// lists vocabulary.js ahead of this file, so reaching here means the packaging
-// or the manifest is wrong.
+//
+// Fail loudly if the table is absent. Destructuring undefined would throw here
+// and kill the content script before anything ran: no overlay, no trace, and an
+// error nobody would connect to a manifest ordering mistake.
 if (!globalThis.AAF_TERMS) {
   console.error(
     "[Auto Auth Filler] vocabulary.js did not load before content.js. " +
@@ -249,7 +303,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   // Either nothing arrived, or the only thing that did is a code this page has
   // already rejected. Both mean the same thing: keep waiting for a newer one.
-  const alreadyTried = otp !== null && otp !== undefined && attemptedCodes.has(otp);
+  const alreadyTried = wasAttempted(otp);
 
   if (!error && (!otp || alreadyTried) && session) {
     if (Date.now() < session.deadline) {
@@ -383,9 +437,9 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
     return;
   }
 
-  // Remember it before entering it. If the site rejects this code, the next
-  // lookup must not offer the same one again.
-  attemptedCodes.add(otp);
+  // Record it before entering it, and durably: the submit may navigate, which
+  // destroys this script, and the replacement needs to know this code was tried.
+  await rememberAttempt(otp);
 
   if (inputs.length === 1) {
     setNativeValue(inputs[0], otp);
@@ -577,7 +631,7 @@ function shouldSearch(inputs) {
   // It cannot bring back the flickering overlay: a lookup that turns up only a
   // code already entered here waits rather than refilling, and the cooldown
   // caps how often any of this can restart.
-  return attemptedCodes.has(currentFieldValue(inputs));
+  return wasAttempted(currentFieldValue(inputs));
 }
 
 // What the field currently holds, split-digit boxes joined back together.
@@ -596,6 +650,10 @@ function trace(message) {
 async function init() {
   if (overlay || session) return;
   if (!(await isPageRelevant())) return;
+
+  // Codes tried on this site before the page reloaded. Without these a form
+  // re-rendered with a rejected code still in it looks like the user typed it.
+  await loadAttempts();
 
   const inputs = findOTPInputs();
   if (!shouldSearch(inputs)) return;

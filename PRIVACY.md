@@ -37,6 +37,7 @@ Everything is stored by your browser, on your device.
 | Access token (short-lived) | Browser session storage | The browser closes |
 | Refresh token | Browser local storage | You press **Sign out** |
 | Your settings (auto-submit, maximum code age, blocked domains) | Browser local storage | You uninstall the extension |
+| A fingerprint of codes already tried on a site | Browser local storage | Ten minutes after the attempt |
 
 The refresh token is kept in local storage deliberately, because it must
 survive a browser restart. Otherwise you would face a Google consent screen
@@ -48,8 +49,17 @@ permissions list on your Google account.
 
 Email content is never written to disk. Message bodies exist only in memory,
 for as long as it takes to run the code-matching patterns over them and are
-discarded immediately afterwards. Codes themselves are not saved either. There
-is no history, no cache and no log of what was read.
+discarded immediately afterwards. There is no history, no cache and no log of
+what was read.
+
+One small exception is worth stating plainly. When a code is entered into a
+page, a short fingerprint of it is written to local storage against that site's
+hostname, and removed ten minutes later. This exists so a code the site rejects
+is never entered a second time, which matters because many sites submit by
+reloading the page and would otherwise leave you stuck with a code that cannot
+work. The code itself is not stored, though the fingerprint is a checksum and
+not a security measure: a six-character code has too little variation for that
+to hide it. It is never transmitted anywhere.
 
 ## What is transmitted
 

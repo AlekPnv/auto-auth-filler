@@ -162,6 +162,9 @@ Limited Use disclosure. In summary:
   Google.
 - No data leaves your browser. There is no external server, no analytics and no
   telemetry.
+- When a code is entered into a page, a short fingerprint of it is kept in local
+  storage for ten minutes, so a code the site rejects is not entered again. The
+  code itself is not stored and nothing is transmitted.
 - Email bodies are processed in memory only, for as long as it takes to look for a
   code and are never written to disk or logged.
 

@@ -96,6 +96,7 @@
           <tr><td>Access token (short-lived)</td><td>Browser session storage</td><td>The browser closes</td></tr>
           <tr><td>Refresh token</td><td>Browser local storage</td><td>You press <strong>Sign out</strong></td></tr>
           <tr><td>Your settings</td><td>Browser local storage</td><td>You uninstall the extension</td></tr>
+          <tr><td>A fingerprint of codes already tried on a site</td><td>Browser local storage</td><td>Ten minutes after the attempt</td></tr>
         </tbody>
       </table>
     </div>
@@ -113,8 +114,16 @@
     <p>
       Email content is never written to disk. Message bodies exist only in
       memory, for as long as it takes to run the code-matching patterns over
-      them and are discarded immediately afterwards. Codes themselves are not
-      saved either. There is no history, no cache and no log of what was read.
+      them and are discarded immediately afterwards. There is no history, no
+      cache and no log of what was read.
+    </p>
+    <p>
+      One small exception, stated plainly: when a code is entered into a page, a
+      short fingerprint of it is written to local storage against that site's
+      hostname and removed ten minutes later. This stops a code the site rejects
+      from being entered again, which matters because many sites submit by
+      reloading the page. The code itself is not stored, though the fingerprint
+      is a checksum rather than a security measure. It is never transmitted.
     </p>
   </section>
 

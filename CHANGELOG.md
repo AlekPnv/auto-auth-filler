@@ -5,6 +5,18 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-07-31
+
+### Fixed
+
+- **A rejected code left the page stuck, and the reason was the page reloading.** Blizzard submits a code by navigating rather than by XHR: the POST returns, the browser leaves the page, and the server re-renders the form with the rejected code still in the boxes. The content script is destroyed and rebuilt, so every record of what had been tried was gone. The replacement script saw a full field holding a code it had never entered, concluded the user had typed it, and did nothing. Both recovery routes added in 3.7.2 and 3.7.3 died with the page, one step apart.
+
+  The record of which codes have been tried now lives in extension storage, keyed by hostname and discarded after ten minutes, so it survives the reload. A form re-rendered with a rejected code in it is recognised as such and searched again, and the newer code replaces it without anyone clearing the field by hand.
+
+### Changed
+
+- A fingerprint of each entered code is written rather than the code itself. It is a checksum and not a security measure, since a six-character code has too little variation for a hash to hide it, but it keeps verification codes out of storage in plain text. The privacy policy, the website and the README now describe this, because the previous claim that codes are never saved would no longer have been true.
+
 ## [3.7.4] - 2026-07-31
 
 ### Fixed
@@ -198,6 +210,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.8.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.0
 [3.7.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.4
 [3.7.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.3
 [3.7.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.2

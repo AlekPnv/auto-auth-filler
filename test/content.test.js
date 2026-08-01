@@ -32,7 +32,20 @@ function loadContentScript() {
     HTMLInputElement: { prototype: {} },
     navigator: { clipboard: { writeText: () => Promise.resolve() } },
     chrome: {
-      storage: { local: { get: (keys, cb) => cb && cb({}) } },
+      // A real store, so the record of tried codes can be exercised. It has to
+      // survive a page load in the browser, which is the whole point of it.
+      storage: {
+        local: (() => {
+          const data = {};
+          return {
+            get: (keys, cb) => {
+              const key = typeof keys === "string" ? keys : null;
+              cb && cb(key ? { [key]: data[key] } : { ...data });
+            },
+            set: (items, cb) => { Object.assign(data, items); cb && cb(); },
+          };
+        })(),
+      },
       runtime: { onMessage: { addListener: noop }, sendMessage: noop, lastError: null },
     },
   };
@@ -295,10 +308,10 @@ test("an unrelated button is not treated as submit", () => {
 
 test("a code already entered on this page is never entered again", () => {
   const cs = loadContentScript();
-  cs.call('attemptedCodes.add("68VNBF")');
+  cs.call('attemptedCodes.add(fingerprint("68VNBF"))');
 
-  assert.ok(cs.call('attemptedCodes.has("68VNBF")'), "the attempt must be remembered");
-  assert.ok(!cs.call('attemptedCodes.has("112233")'), "a different code is still allowed");
+  assert.ok(cs.wasAttempted("68VNBF"), "the attempt must be remembered");
+  assert.ok(!cs.wasAttempted("112233"), "a different code is still allowed");
 });
 
 test("submit keywords cover the spacing variants sites actually use", async (t) => {
@@ -338,7 +351,7 @@ test("a field holding a code we entered may be searched again", () => {
     "a full field holding an unknown value is left alone",
   );
 
-  cs.call('attemptedCodes.add("68VNBF")');
+  cs.call('attemptedCodes.add(fingerprint("68VNBF"))');
   assert.strictEqual(
     cs.shouldSearch(boxes), true,
     "a full field holding a code we entered must be searchable again",
@@ -349,7 +362,7 @@ test("a code the user typed themselves is not overwritten", () => {
   // Only values this extension entered qualify. Someone who typed their own
   // code must not have it replaced underneath them.
   const cs = loadContentScript();
-  cs.call('attemptedCodes.add("111111")');
+  cs.call('attemptedCodes.add(fingerprint("111111"))');
   assert.strictEqual(cs.shouldSearch([field("999999")]), false);
 });
 
@@ -359,4 +372,49 @@ test("the single-field and split-digit cases read the same value", () => {
   assert.strictEqual(
     cs.currentFieldValue(["6", "8", "V", "N", "B", "F"].map(field)), "68VNBF",
   );
+});
+
+test("codes tried before a page reload are still known afterwards", async () => {
+  // Blizzard submits by navigating, then re-renders the form with the rejected
+  // code still in the boxes. The replacement content script has to know that
+  // code was already tried, or it treats it as something the user typed and
+  // leaves the page stuck.
+  const first = loadContentScript();
+  await first.rememberAttempt("68VNBF");
+
+  // A second load of the script, sharing the same extension storage, stands in
+  // for the page having navigated.
+  const second = loadContentScript();
+  second.chrome.storage.local = first.chrome.storage.local;
+  await second.loadAttempts();
+
+  assert.ok(second.wasAttempted("68VNBF"), "the record must survive the reload");
+  assert.strictEqual(
+    second.shouldSearch(["6", "8", "V", "N", "B", "F"].map(field)), true,
+    "the re-rendered form must be searchable again",
+  );
+});
+
+test("only a fingerprint is written, never the code", async () => {
+  const cs = loadContentScript();
+  await cs.rememberAttempt("68VNBF");
+
+  const written = await new Promise((resolve) =>
+    cs.chrome.storage.local.get(null, resolve));
+  const dump = JSON.stringify(written);
+
+  assert.ok(!dump.includes("68VNBF"), `the code appeared in storage: ${dump}`);
+  assert.ok(dump.includes("attempted:"), "the record should be keyed by hostname");
+});
+
+test("stale attempts are forgotten", async () => {
+  const cs = loadContentScript();
+  const key = cs.attemptStorageKey();
+  const old = Date.now() - 11 * 60 * 1000;
+
+  await new Promise((resolve) =>
+    cs.chrome.storage.local.set({ [key]: [{ fp: cs.fingerprint("111111"), at: old }] }, resolve));
+  await cs.loadAttempts();
+
+  assert.ok(!cs.wasAttempted("111111"), "an attempt older than the window must expire");
 });
