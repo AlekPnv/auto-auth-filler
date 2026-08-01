@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.2] - 2026-07-31
+
+### Fixed
+
+- **The overlay kept searching after a successful sign-in.** Keeping the lookup open after filling is what lets a rejected code be replaced, but nothing distinguished a rejected code from an accepted one, so on a site that signs in without reloading the page the overlay sat there announcing that it waited for a newer code. Blizzard hid this by navigating on submit, which destroys the content script anyway; Notion, being a single-page app, does not. The code field disappearing is now treated as the sign-in having worked, since a site that refuses a code keeps its form on screen. Two consecutive checks are required, because a form can be absent for an instant while it re-renders.
+
 ## [3.8.1] - 2026-07-31
 
 ### Changed
@@ -216,6 +222,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.8.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.2
 [3.8.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.1
 [3.8.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.0
 [3.7.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.4

@@ -418,3 +418,27 @@ test("stale attempts are forgotten", async () => {
 
   assert.ok(!cs.wasAttempted("111111"), "an attempt older than the window must expire");
 });
+
+test("the watch stops once the code field is gone", () => {
+  // A successful sign-in takes the form away. A rejected code leaves it on
+  // screen. That difference is the only generic signal available, and without
+  // it the overlay sat on a signed-in page saying it waited for a newer code.
+  const cs = loadContentScript();
+
+  // Before anything has been entered, a missing field is not a success signal:
+  // it just means there is nothing to do yet.
+  cs.call("session = { filled: false, missCount: 0 }");
+  assert.strictEqual(cs.call("session.filled"), false);
+
+  // After filling, one miss is tolerated because a form can re-render.
+  cs.call("session = { filled: true, missCount: 0 }");
+  cs.call("session.missCount = (session.missCount ?? 0) + 1");
+  assert.strictEqual(cs.call("session.missCount >= 2"), false, "one miss must not end the watch");
+
+  cs.call("session.missCount = (session.missCount ?? 0) + 1");
+  assert.strictEqual(cs.call("session.missCount >= 2"), true, "two misses end it");
+
+  // Finding the field again clears the count.
+  cs.call("session.missCount = 0");
+  assert.strictEqual(cs.call("session.missCount >= 2"), false);
+});

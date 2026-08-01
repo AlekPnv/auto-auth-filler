@@ -441,6 +441,9 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
   // destroys this script, and the replacement needs to know this code was tried.
   await rememberAttempt(otp);
 
+  // Marks the point after which the field vanishing means the code worked.
+  if (session) session.filled = true;
+
   if (inputs.length === 1) {
     setNativeValue(inputs[0], otp);
   } else {
@@ -582,6 +585,30 @@ async function requestOTP() {
   if (!overlay) return;
 
   const inputs = findOTPInputs();
+
+  // Once a code has been entered, the code field disappearing is what a
+  // successful sign-in looks like. A site that rejects the code keeps its form
+  // on screen, so this is the difference between the two, and without it the
+  // watch would sit on a signed-in page announcing that it waits for a newer
+  // code.
+  //
+  // Two consecutive misses are required, because a form can be absent for an
+  // instant while it re-renders.
+  if (session?.filled) {
+    if (!inputs || inputs.length === 0) {
+      session.missCount = (session.missCount ?? 0) + 1;
+      if (session.missCount >= 2) {
+        trace("code field gone, sign-in looks complete");
+        const statusEl = overlay.querySelector(".aaf-status");
+        if (statusEl) statusEl.textContent = "✅ Done";
+        session = null;
+        setTimeout(removeOverlay, 1200);
+        return;
+      }
+    } else {
+      session.missCount = 0;
+    }
+  }
   const inputMaxLen = inputs?.[0] ? parseInt(inputs[0].maxLength ?? 0) || undefined : undefined;
 
   // An MV3 worker can be killed mid-request, and a reply is not guaranteed.
