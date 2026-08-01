@@ -5,6 +5,18 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-07-31
+
+### Fixed
+
+- **Signing in a second time filled the previous code first.** The extension took the newest code within the age limit, and on a second attempt at the same site the earlier code is usually still inside that limit and is the newest one in existence at the moment of the search. It was then replaced a few seconds later when the real code arrived, which looked like the extension changing its mind. A lookup now ignores anything sent more than ninety seconds before the code field appeared, so a leftover code is never offered.
+- **Waiting for mail no longer tears the overlay down.** Previously a lookup that found nothing reported failure and closed, and only a later DOM change would start another. The overlay now stays open and asks again every four seconds for up to two minutes, so it is waiting rather than repeatedly giving up. This is also what made a stale code dangerous: with the field left filled, no further search would run and the real code would never be entered.
+- If nothing fresh arrives within that window, the freshness requirement is dropped once and the most recent code is used, so the wait can never end with nothing when a usable code exists.
+
+### Note
+
+Making the subject searchable in 3.4.0 introduced a false positive found by the test suite: a subject of "Your verification code" followed by a body beginning with any word placed that word directly after a label and alone on a line, so "Your" was briefly a valid code. A presented code must now sit directly after a colon or genuinely alone on its line.
+
 ## [3.4.1] - 2026-07-31
 
 ### Fixed
@@ -113,6 +125,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.5.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.0
 [3.4.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.1
 [3.4.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.0
 [3.3.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.3.1

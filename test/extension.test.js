@@ -94,6 +94,18 @@ test("extractOTP reads the wording the large services actually use", async (t) =
   }
 });
 
+test("a code counts as presented only when it stands alone", () => {
+  // The subject is searched alongside the body. A subject of "Your verification
+  // code" followed by a body beginning with any word puts that word directly
+  // after a label and on its own line, which briefly made "Your" a valid code.
+  const subjectThenBody = "Your verification code\nYour verification code: 222222";
+  assert.strictEqual(bg.extractOTP(subjectThenBody), "222222");
+
+  // Prose on the following line is not a presented value.
+  assert.strictEqual(bg.extractOTP("Your verification code\nPlease wait for it"), null);
+  assert.strictEqual(bg.extractOTP("Your security code\nis on its way to you"), null);
+});
+
 test("stripHtml keeps the code separate from the sentence before it", () => {
   // Providers usually put the code alone in a heading or a bold cell, with no
   // colon anywhere. Collapsing the markup to spaces would join it to the
@@ -176,6 +188,69 @@ test("extractOTP honours the field length hint", () => {
 test("extractOTP ignores an empty body", () => {
   assert.strictEqual(bg.extractOTP(""), null);
   assert.strictEqual(bg.extractOTP(null), null);
+});
+
+test("findLatestOTP skips codes older than notBefore", async (t) => {
+  // The scenario this exists for: signing in a second time, when the previous
+  // code is still inside the age limit and is the newest one that exists at
+  // the moment of the search. Filling it wastes the user's time.
+  const minute = 60000;
+
+  const message = (id, sentAgoMs, code) => ({
+    id,
+    internalDate: String(Date.now() - sentAgoMs),
+    snippet: "",
+    payload: {
+      headers: [{ name: "Subject", value: "Your verification code" }],
+      mimeType: "text/plain",
+      body: { data: Buffer.from(`Your verification code: ${code}`).toString("base64url") },
+    },
+  });
+
+  function withMessages(messages) {
+    const instance = loadBackground();
+    // Stub the Gmail layer: the list call, then one call per message id.
+    instance.call(`
+      fetchGmail = async (endpoint) => {
+        if (endpoint.startsWith("messages?")) {
+          return { messages: ${JSON.stringify(messages.map((m) => ({ id: m.id })))} };
+        }
+        const id = endpoint.split("/")[1];
+        return ${JSON.stringify(Object.fromEntries(messages.map((m) => [m.id, m])))}[id];
+      };
+      getAuthToken = async () => "test-token";
+    `);
+    return instance;
+  }
+
+  const stale = message("old", 6 * minute, "111111");
+  const fresh = message("new", 10000, "222222");
+
+  await t.test("without notBefore the newest wins", async () => {
+    const bgx = withMessages([stale, fresh]);
+    const result = await bgx.call("findLatestOTP({ maxOTPAge: 10 })");
+    assert.strictEqual(result.otp, "222222");
+  });
+
+  await t.test("a stale code alone is used when nothing is required", async () => {
+    const bgx = withMessages([stale]);
+    const result = await bgx.call("findLatestOTP({ maxOTPAge: 10 })");
+    assert.strictEqual(result.otp, "111111");
+  });
+
+  await t.test("a stale code alone is refused once notBefore is set", async () => {
+    const bgx = withMessages([stale]);
+    const cutoff = Date.now() - 90000;
+    const result = await bgx.call(`findLatestOTP({ maxOTPAge: 10, notBefore: ${cutoff} })`);
+    assert.strictEqual(result.otp, null, "the previous attempt's code must not be filled");
+  });
+
+  await t.test("a fresh code passes the same cutoff", async () => {
+    const bgx = withMessages([stale, fresh]);
+    const cutoff = Date.now() - 90000;
+    const result = await bgx.call(`findLatestOTP({ maxOTPAge: 10, notBefore: ${cutoff} })`);
+    assert.strictEqual(result.otp, "222222");
+  });
 });
 
 test("PKCE challenge matches the RFC 7636 test vector", async () => {

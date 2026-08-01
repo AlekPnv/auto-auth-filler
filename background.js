@@ -504,13 +504,23 @@ const GENERIC_LABEL = "code|otp|pin|token";
 function otpPatterns() {
   return [
     {
-      // A security label presenting the code as a value: after a colon, or on
-      // its own line. A few words may sit in between, as in Steam's "Steam
-      // Guard code you need to login: K7Q2M", but the colon or line break is
-      // required. "Your verification code below expires soon" therefore does
-      // not qualify, and neither does "Use code SUMMER for 20% off".
+      // A security label, then the code after a colon. A few words may sit in
+      // between, as in Steam's "Steam Guard code you need to login: K7Q2M".
       re: new RegExp(
-        "(?:" + SECURITY_LABEL + ")(?:\\W+\\w+){0,4}?\\W{0,8}?[:\\n\\r]\\W{0,8}?([A-Za-z0-9]{4,10})(?![A-Za-z0-9])",
+        "(?:" + SECURITY_LABEL + ")(?:\\W+\\w+){0,4}?[^\\S\\n]*:\\s{0,10}([A-Za-z0-9]{4,10})(?![A-Za-z0-9])",
+        "gi",
+      ),
+      lettersOnlyOk: true,
+    },
+    {
+      // A security label, then the code alone on a following line, which is how
+      // it appears once a heading or a bold cell has been flattened to text.
+      //
+      // Being alone on the line is the whole point. Without that check, a
+      // subject of "Your verification code" followed by a body beginning with
+      // any word would make that word look like a presented value.
+      re: new RegExp(
+        "(?:" + SECURITY_LABEL + ")[^\\n]{0,40}\\n[^\\S\\n]*([A-Za-z0-9]{4,10})[^\\S\\n]*(?=\\n|$)",
         "gi",
       ),
       lettersOnlyOk: true,
@@ -619,9 +629,15 @@ async function findLatestOTP(settings = {}) {
     .sort((a, b) => parseInt(b.internalDate) - parseInt(a.internalDate));
 
   for (const msg of candidates) {
-    const ageMins = (now - parseInt(msg.internalDate)) / 60000;
+    const sentAt = parseInt(msg.internalDate);
+    const ageMins = (now - sentAt) / 60000;
     // ageMins < -1 guards against slight clock skew between Gmail servers and local time
     if (ageMins < -1 || ageMins > maxAge) continue;
+
+    // The caller can demand a code newer than a given moment. On a second
+    // sign-in the previous code is often still inside the age limit and would
+    // otherwise win, being the newest one that exists at that instant.
+    if (settings.notBefore && sentAt < settings.notBefore) continue;
 
     const subject =
       msg.payload?.headers?.find((h) => h.name.toLowerCase() === "subject")?.value ??
@@ -680,7 +696,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const tabId = sender.tab?.id;
 
     getFromLocal(["maxOTPAge"]).then((settings) => {
-      return findLatestOTP({ ...settings, inputMaxLen: msg.inputMaxLen });
+      return findLatestOTP({
+        ...settings,
+        inputMaxLen: msg.inputMaxLen,
+        notBefore: msg.notBefore,
+      });
     }).then((result) => {
       releaseFetchLock();
       if (tabId) tabsSendMessage(tabId, { type: "OTP_RESULT", ...result });

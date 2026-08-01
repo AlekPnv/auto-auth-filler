@@ -6,12 +6,28 @@ let searchTimeout = null;
 let busyRetries = 0;
 let lastSearchStartedAt = 0;
 
+// One lookup, from the moment a code field appears until a code is filled or
+// the attempt is abandoned. Keeping it open is what lets the extension wait for
+// mail that has not arrived yet without tearing the overlay down and starting
+// over, which is what made it flicker.
+let session = null;
+
 // Filling a field is itself a DOM change, so the observer wakes immediately
 // afterwards and finds the same field again. Without a guard the overlay would
-// close, reopen, search, fill, and close again for as long as the page stayed
-// open. Two conditions stop that: a field holding a value needs nothing, and no
-// second search may start within the cooldown.
+// close, reopen, search, fill and close again for as long as the page stayed
+// open.
 const RESEARCH_COOLDOWN_MS = 15000;
+
+// How far before the field appeared a code may have been sent and still count.
+// Mail often lands a moment before the page does. Anything older than this is
+// almost certainly left over from an earlier attempt, and filling it costs the
+// user more time than filling nothing.
+const CODE_LOOKBACK_MS = 90000;
+
+// While waiting for mail that has not arrived, ask again on this interval, for
+// at most this long.
+const POLL_INTERVAL_MS = 4000;
+const POLL_WINDOW_MS = 120000;
 
 // minimum score for an input to be treated as an OTP field
 const CONFIDENCE_THRESHOLD = 28;
@@ -199,14 +215,40 @@ async function setOverlayResult(otp, subject, ageMins, error) {
   const statusEl = overlay.querySelector(".aaf-status");
   const actionsEl = overlay.querySelector(".aaf-actions");
 
+  if (!otp && !error && session) {
+    // Nothing new yet. The mail is probably still in flight, so keep the
+    // overlay open and ask again rather than reporting failure and closing.
+    if (Date.now() < session.deadline) {
+      statusEl.textContent = "Waiting for a new code…";
+      actionsEl.hidden = true;
+      setTimeout(requestOTP, POLL_INTERVAL_MS);
+      return;
+    }
+
+    // The wait is over and no fresh code arrived. Rather than leave the user
+    // with nothing, drop the freshness requirement once and take the most
+    // recent code there is, which is what they would have copied by hand.
+    if (!session.acceptedAnyAge) {
+      session.acceptedAnyAge = true;
+      session.notBefore = 0;
+      statusEl.textContent = "Checking for an older code…";
+      requestOTP();
+      return;
+    }
+  }
+
   if (!otp) {
     statusEl.textContent = error
       ? "Error: " + truncate(error, 60)
       : "No recent code found in Gmail.";
     actionsEl.hidden = true;
+    session = null;
     setTimeout(removeOverlay, 5000);
     return;
   }
+
+  // A code arrived, so this lookup is finished.
+  session = null;
 
   const age = ageMins != null ? ` · ${ageMins}m ago` : "";
   statusEl.textContent = truncate(subject, 48) + age;
@@ -247,6 +289,9 @@ async function setOverlayResult(otp, subject, ageMins, error) {
 
 function removeOverlay() {
   clearTimeout(searchTimeout);
+  // Closing the overlay abandons the lookup. Leaving the session open would let
+  // a queued poll reopen it after the user dismissed it on purpose.
+  session = null;
   overlay?.remove();
   overlay = null;
 }
@@ -346,6 +391,10 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 async function requestOTP() {
+  // A poll may already be queued when the user closes the overlay. Without this
+  // it would reopen the search they just dismissed.
+  if (!overlay) return;
+
   const inputs = findOTPInputs();
   const inputMaxLen = inputs?.[0] ? parseInt(inputs[0].maxLength ?? 0) || undefined : undefined;
 
@@ -356,7 +405,11 @@ async function requestOTP() {
     setOverlayResult(null, null, null, "Timed out waiting for the background worker");
   }, SEARCH_TIMEOUT_MS);
 
-  const response = await sendToBackground({ type: "GET_OTP", inputMaxLen });
+  const response = await sendToBackground({
+    type: "GET_OTP",
+    inputMaxLen,
+    notBefore: session?.notBefore ?? 0,
+  });
 
   // The worker refuses overlapping fetches. Back off and ask again rather than
   // dropping the request silently, which would leave the overlay searching.
@@ -382,13 +435,22 @@ function shouldSearch(inputs) {
 }
 
 async function init() {
-  if (overlay) return;
+  if (overlay || session) return;
   if (!(await isPageRelevant())) return;
 
   const inputs = findOTPInputs();
   if (!shouldSearch(inputs)) return;
 
   lastSearchStartedAt = Date.now();
+  session = {
+    // Codes older than this are from an earlier attempt at the same site. On a
+    // second sign-in the previous code is usually still within the age limit,
+    // and without this it would be filled in first.
+    notBefore: Date.now() - CODE_LOOKBACK_MS,
+    deadline: Date.now() + POLL_WINDOW_MS,
+    acceptedAnyAge: false,
+  };
+
   createOverlay(inputs);
   requestOTP();
 }
