@@ -282,9 +282,6 @@ The settings page:
 
 ![The settings page](docs/screenshots/settings.png)
 
-These are the same assets both stores ask for during submission, so capturing
-them once covers the README and the listings.
-
 ## Contributing
 
 Issues and pull requests are welcome. If you are changing how detection or
