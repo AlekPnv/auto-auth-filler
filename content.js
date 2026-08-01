@@ -22,7 +22,13 @@ const RESEARCH_COOLDOWN_MS = 15000;
 // Mail often lands a moment before the page does. Anything older than this is
 // almost certainly left over from an earlier attempt, and filling it costs the
 // user more time than filling nothing.
-const CODE_LOOKBACK_MS = 90000;
+const CODE_LOOKBACK_MS = 60000;
+
+// Codes already put into this page. A code the site rejected must never be
+// entered a second time: doing so leaves the field holding a value that cannot
+// work, and the old rule that a filled field needs no search then meant nothing
+// ever recovered.
+const attemptedCodes = new Set();
 
 // While waiting for mail that has not arrived, ask again on this interval, for
 // at most this long.
@@ -228,26 +234,45 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
   const statusEl = overlay.querySelector(".aaf-status");
   const actionsEl = overlay.querySelector(".aaf-actions");
 
-  if (!otp && !error && session) {
-    // Nothing new yet. The mail is probably still in flight, so keep the
-    // overlay open and ask again rather than reporting failure and closing.
+  // Either nothing arrived, or the only thing that did is a code this page has
+  // already rejected. Both mean the same thing: keep waiting for a newer one.
+  const alreadyTried = otp !== null && otp !== undefined && attemptedCodes.has(otp);
+
+  if (!error && (!otp || alreadyTried) && session) {
     if (Date.now() < session.deadline) {
-      statusEl.textContent = "Waiting for a new code…";
+      statusEl.textContent = alreadyTried
+        ? "Waiting for a newer code…"
+        : "Waiting for a new code…";
       actionsEl.hidden = true;
       setTimeout(requestOTP, POLL_INTERVAL_MS);
       return;
     }
 
-    // The wait is over and no fresh code arrived. Rather than leave the user
+    // The wait is over and nothing fresh arrived. Rather than leave the user
     // with nothing, drop the freshness requirement once and take the most
     // recent code there is, which is what they would have copied by hand.
-    if (!session.acceptedAnyAge) {
+    // A code already tried is never worth a second attempt, so this only
+    // applies when nothing was found at all.
+    if (!otp && !session.acceptedAnyAge) {
       session.acceptedAnyAge = true;
       session.notBefore = 0;
       statusEl.textContent = "Checking for an older code…";
       requestOTP();
       return;
     }
+
+    session = null;
+
+    // Only report failure if nothing was ever entered. After a successful fill
+    // this is just the watch expiring, which is not news.
+    if (attemptedCodes.size === 0) {
+      statusEl.textContent = "No recent code found in Gmail.";
+      actionsEl.hidden = true;
+      setTimeout(removeOverlay, 5000);
+    } else {
+      setTimeout(removeOverlay, 1000);
+    }
+    return;
   }
 
   if (!otp) {
@@ -260,9 +285,9 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
     return;
   }
 
-  // A code arrived, so this lookup is finished.
-  session = null;
-
+  // The session deliberately stays open. If this code turns out to be the one
+  // the site rejects, a newer message may still arrive, and by then the field
+  // holds a value so nothing else would start a lookup.
   const age = ageMins != null ? ` · ${ageMins}m ago` : "";
   const fromElsewhere = details.matchesSite === false;
 
@@ -330,6 +355,10 @@ async function fillOTP(otp, knownInputs) {
   const inputs = knownInputs ?? findOTPInputs();
   if (!inputs || inputs.length === 0) return;
 
+  // Remember it before entering it. If the site rejects this code, the next
+  // lookup must not offer the same one again.
+  attemptedCodes.add(otp);
+
   if (inputs.length === 1) {
     setNativeValue(inputs[0], otp);
   } else {
@@ -343,18 +372,26 @@ async function fillOTP(otp, knownInputs) {
   if (statusEl) statusEl.textContent = "✅ Filled";
 
   const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
-  if (autoSubmit === false) {
-    setTimeout(removeOverlay, 1500);
+
+  if (autoSubmit !== false) {
+    const submitted = await clickSubmitWhenReady(inputs[0]);
+    // Say so when the form was left for the user. Silence here is
+    // indistinguishable from a submit that worked, and the difference matters
+    // when the code expires in a few minutes.
+    if (!submitted && statusEl) statusEl.textContent = "✅ Filled, submit manually";
+  }
+
+  // Keep watching rather than closing. A rejected code leaves the field holding
+  // a value, and a filled field stops any new lookup from starting, so without
+  // this the user has to clear the box by hand before anything happens again.
+  // When a newer code arrives it simply replaces what is there.
+  if (session && Date.now() < session.deadline) {
+    if (statusEl) statusEl.textContent += " · watching";
+    setTimeout(requestOTP, POLL_INTERVAL_MS);
     return;
   }
 
-  const submitted = await clickSubmitWhenReady(inputs[0]);
-
-  // Say so when the form was left for the user. Silence here is indisting-
-  // uishable from a submit that failed, and the difference matters when the
-  // code expires in a few minutes.
-  if (!submitted && statusEl) statusEl.textContent = "✅ Filled, submit manually";
-  setTimeout(removeOverlay, submitted ? 1500 : 4000);
+  setTimeout(removeOverlay, 1500);
 }
 
 // Waits for a usable submit button rather than clicking once and hoping. The

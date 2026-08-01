@@ -58,10 +58,13 @@ globalThis.AAF_VOCAB = {
     // emailed code.
     payment: ["\\b(?:card|payment|iban|cvv|cvc|debit)\\b"],
 
-    // Text on the button that submits a code. Matched as a substring.
+    // Text on the button that submits a code. Matched as a substring, so
+    // spacing variants have to be listed separately: Blizzard's button reads
+    // "Log in", which "login" does not match.
     submitButtons: [
       "verify", "verif", "submit", "confirm", "continue", "next",
-      "login", "sign in",
+      "login", "log in", "log-in", "sign in", "sign-in", "signin",
+      "done", "proceed",
     ],
 
     // Gmail query terms. Subject terms are matched against the subject only;

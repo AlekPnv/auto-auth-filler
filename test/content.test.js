@@ -286,3 +286,42 @@ test("an unrelated button is not treated as submit", () => {
   const cs = pageWith([button({ text: "Add to basket" }), button({ text: "Close" })]);
   assert.strictEqual(cs.findSubmitButton(null), null);
 });
+
+// ---------------------------------------------------------------------------
+// Recovery after a rejected code. Signing out and back in put the previous
+// code into the field, the site rejected it, and because a filled field stops
+// any new lookup, nothing recovered until the box was cleared by hand.
+// ---------------------------------------------------------------------------
+
+test("a code already entered on this page is never entered again", () => {
+  const cs = loadContentScript();
+  cs.call('attemptedCodes.add("68VNBF")');
+
+  assert.ok(cs.call('attemptedCodes.has("68VNBF")'), "the attempt must be remembered");
+  assert.ok(!cs.call('attemptedCodes.has("112233")'), "a different code is still allowed");
+});
+
+test("submit keywords cover the spacing variants sites actually use", async (t) => {
+  const cs = loadContentScript();
+  const keywords = cs.AAF_TERMS.submitButtons;
+  const matches = (label) => keywords.some((k) => label.toLowerCase().includes(k));
+
+  // "Log in" with a space is Blizzard's button, and "login" does not match it.
+  for (const label of ["Log in", "Login", "Log-in", "Sign in", "Sign-in",
+                       "Verify", "Continue", "Submit", "Done", "Bestätigen"]) {
+    await t.test(`accepts "${label}"`, () => assert.ok(matches(label), `${label} not recognised`));
+  }
+
+  for (const label of ["Add to basket", "Close", "Cancel", "Resend code"]) {
+    await t.test(`ignores "${label}"`, () => assert.ok(!matches(label), `${label} wrongly matched`));
+  }
+});
+
+test("the freshness window is short enough to exclude a previous attempt", () => {
+  const cs = loadContentScript();
+  // Signing out and back in reuses the same page within seconds. A window of
+  // several minutes would let the earlier code through as though it were new.
+  const lookback = cs.call("CODE_LOOKBACK_MS");
+  assert.ok(lookback <= 60000, `lookback is ${lookback}ms, too generous`);
+  assert.ok(lookback >= 30000, `lookback is ${lookback}ms, mail arriving early would be missed`);
+});

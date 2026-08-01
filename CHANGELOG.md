@@ -5,6 +5,14 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.2] - 2026-07-31
+
+### Fixed
+
+- **Auto-submit never fired on buttons labelled "Log in".** The keyword list held `login` as one word, which does not match `Log in` with a space, so no button was ever found and the extension waited its full timeout before giving up. The list now covers the spacing variants sites actually use, along with `done` and `proceed`.
+- **A rejected code left the page stuck.** Signing out and back in filled the previous code, the site refused it, and because a filled field stops any new lookup, nothing recovered until the box was cleared by hand. Two rules fix it. A code entered on a page is remembered and never entered there again, so a lookup that finds only that code keeps waiting instead of refilling it. The lookup also stays open after filling rather than closing, so when a newer code arrives it simply replaces what is in the field and submits again. The whole cycle is automatic.
+- The freshness window narrowed from ninety seconds to sixty. Signing out and back in reuses the same page within seconds, and the wider window was letting the previous attempt's code through as though it were new.
+
 ## [3.7.1] - 2026-07-31
 
 ### Fixed
@@ -172,6 +180,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.7.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.2
 [3.7.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.1
 [3.7.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.0
 [3.6.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.6.0
