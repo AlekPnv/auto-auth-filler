@@ -5,6 +5,8 @@ latest Gmail message and enters it into the one-time-code field on whatever page
 you are using. You sign in with your Google account once, and after that it works
 on every site with no per-site setup.
 
+**[Watch it work (115 seconds)](https://youtu.be/S_3jNeLl1Iw)**
+
 ## Why it exists
 
 Switching between your inbox and a login form to copy a six-digit code is a small
@@ -262,18 +264,26 @@ without it, so make sure it holds your own credentials before uploading anything
 
 ## Screenshots
 
-Add screenshots to a `docs/screenshots` folder and reference them here once they
-exist, for example:
+A code arriving and being entered, with the overlay naming the email it came
+from and how long ago it was sent:
 
-```
-docs/screenshots/overlay-on-login-page.png
-docs/screenshots/popup-with-code-found.png
-docs/screenshots/settings-page.png
-docs/screenshots/sign-in-flow.png
-```
+![The code entered into a login form, with the overlay showing which email it came from](docs/screenshots/overlay-filled.png)
 
-The same images are the assets requested during Chrome Web Store and AMO
-submission, so capturing them once covers both.
+While the mail is still in flight, the overlay waits rather than reporting
+failure:
+
+![The overlay waiting for a code that has not arrived yet](docs/screenshots/overlay-waiting.png)
+
+The toolbar popup before signing in:
+
+![The toolbar popup, not signed in](docs/screenshots/popup.png)
+
+The settings page:
+
+![The settings page](docs/screenshots/settings.png)
+
+These are the same assets both stores ask for during submission, so capturing
+them once covers the README and the listings.
 
 ## Contributing
 
