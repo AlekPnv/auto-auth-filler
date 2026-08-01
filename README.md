@@ -1,118 +1,216 @@
 # Auto Auth Filler
 
-Auto Auth Filler is a browser extension that finds the verification code in your latest Gmail message and fills it into the OTP or two-factor authentication field on whatever page you are using. You sign in with your Google account once, and after that the extension works quietly in the background on every site, with no per-site setup required.
+Auto Auth Filler is a browser extension that finds the verification code in your
+latest Gmail message and enters it into the one-time-code field on whatever page
+you are using. You sign in with your Google account once, and after that it works
+on every site with no per-site setup.
 
 ## Why it exists
 
-Switching between your inbox and a login form to copy a six-digit code is a small but constant annoyance, and it adds up if you use two-factor authentication often. This extension removes that step. It detects the input field, retrieves the code from your inbox, and offers to fill it in, all without leaving the page you are on.
+Switching between your inbox and a login form to copy a six-digit code is a small
+but constant annoyance, and it adds up if you use two-factor authentication
+often. This extension removes that step. It recognises the input field, retrieves
+the code from your inbox, and fills it in without you leaving the page.
 
 ## Features
 
-- Detects OTP and 2FA fields on virtually any website using a scoring system based on field attributes, input mode, label text, and surrounding page context. There is no list of supported sites to maintain; it simply works where it is needed.
-- Reads recent Gmail messages (read-only) and extracts the verification code using pattern matching that covers plain numeric codes, alphanumeric codes, hyphenated formats, Google-style "G-XXXXXX" codes, and split-digit input boxes.
-- Enters the code as soon as it finds one, and shows a small overlay saying which email it came from, with "Copy" and a manual fill button. Automatic filling can be switched off, and password fields always wait for a click.
-- Optional auto-submit after filling, a configurable maximum code age, and a per-domain blocklist for sites where you never want the overlay to appear.
-- Works on Chrome, Edge, Brave, Opera, Vivaldi, and Firefox.
+- Recognises one-time-code fields on effectively any website using a scoring
+  system based on field attributes, input mode, label text and the wording of the
+  surrounding form. There is no list of supported sites to maintain.
+- Reads recent Gmail messages, read-only, and extracts the code with pattern
+  matching that covers plain numeric codes, alphanumeric codes, hyphenated
+  formats, Google's "G-XXXXXX" style, and split single-digit boxes.
+- Understands German forms as well as English ones.
+- Enters the code as soon as it finds one and shows a small overlay naming the
+  email it came from, with a copy button. Automatic filling can be switched off,
+  and password fields always wait for a click.
+- Optional auto-submit after filling, a configurable maximum code age, and a
+  per-domain blocklist.
+
+## Browser support
+
+| Browser | Status |
+| --- | --- |
+| Chrome 102 and newer | Full support |
+| Edge 102 and newer | Full support |
+| Brave, Opera, Vivaldi | Full support, Chromium based |
+| Firefox 140 and newer | Full support |
+| Firefox for Android 142 and newer | Declared, but untested |
+
+Firefox 140 is the floor because that is the first version supporting the
+`data_collection_permissions` manifest key that addons.mozilla.org requires.
 
 ## How it works
 
-1. You sign in with Google once, granting the `gmail.readonly` scope. The extension cannot send, delete, or modify your email; it can only read it.
-2. When you land on a page with a verification field, the content script recognizes it and asks the background service worker for a code.
-3. The background worker searches your most recent Gmail messages for something that looks like a verification email and extracts the code from it.
-4. The code is entered into the field, and an overlay shows which email it came from. If you have turned automatic filling off, the overlay waits for you to click instead.
+1. You sign in with Google once, granting the `gmail.readonly` scope. The
+   extension cannot send, delete or modify your mail. It can only read it.
+2. When you land on a page with a verification field, the content script
+   recognises it and asks the background worker for a code.
+3. The background worker searches your ten most recent Gmail messages from the
+   last day, keeps only those newer than the maximum code age (ten minutes by
+   default), and extracts the code from the first match. Plain text is preferred,
+   and HTML-only mail has its tags stripped first.
+4. The code is entered into the field, and the overlay shows which email it came
+   from. If you have turned automatic filling off, the overlay waits for you to
+   click instead.
 
-No email content is ever stored or sent anywhere outside your browser. Codes are read into memory long enough to extract and display them, then discarded.
+No email content is stored or sent anywhere outside your browser. Message bodies
+are held in memory only long enough to run the patterns over them, then
+discarded.
 
-## Installation (development / unpacked)
+## Installing from source
+
+The extension is not yet in the browser add-on stores, so it loads as a
+development add-on. You will need your own Google credentials first, described in
+the next section.
 
 ### Chrome, Edge, Brave, Opera, Vivaldi
 
-1. Open the browser's extensions page (`chrome://extensions`, `edge://extensions`, etc.).
-2. Turn on Developer Mode.
-3. Click "Load unpacked" and select this project's folder.
-4. The Auto Auth Filler icon appears in the toolbar.
+1. Open the browser's extensions page, for example `chrome://extensions`.
+2. Turn on Developer mode.
+3. Click **Load unpacked** and select this project's folder.
+4. The extension icon appears in the toolbar.
 
 ### Firefox
 
 1. Open `about:debugging#/runtime/this-firefox`.
-2. Click "Load Temporary Add-on" and select `manifest.json` inside this folder.
-3. The Auto Auth Filler icon appears in the toolbar.
+2. Click **Load Temporary Add-on**.
+3. Select `manifest.json` inside this folder.
+4. The extension icon appears in the toolbar.
 
-Firefox removes temporary add-ons on every restart. For a permanent install, the extension needs to be signed through addons.mozilla.org.
+Firefox removes temporary add-ons on every restart. A permanent install needs the
+extension signed through addons.mozilla.org.
 
 ## Setting up your own Google OAuth credentials
 
-This extension needs its own Google Cloud project and OAuth 2.0 Client ID to talk to the Gmail API. The repository ships `config.template.js` but no working Client ID, so the extension will not authenticate until you supply one.
+The extension needs its own Google Cloud project and OAuth client to reach the
+Gmail API. The repository ships `config.template.js` but no working credentials,
+so sign-in fails with a configuration error until you supply them.
 
-1. Go to the Google Cloud Console and create (or select) a project.
-2. Enable the Gmail API for that project.
-3. Create OAuth 2.0 credentials of type "Chrome Extension" (or "Web application" for Firefox, using the redirect URI that `chrome.identity.getRedirectURL()` returns).
-4. Copy `config.template.js` to `config.js` and put your Client ID in it:
+1. Go to the Google Cloud Console and create or select a project.
+2. Enable the Gmail API for it.
+3. Create an OAuth 2.0 client of type **Web application**. Firefox requires this
+   type, because `chrome.identity.getRedirectURL()` returns an HTTPS redirect URI
+   and only a Web application client accepts one. The same client works for
+   Chromium, so you need one client, not two.
+4. Register the redirect URI each browser reports. Run
+   `chrome.identity.getRedirectURL()` in the extension's console to see it. A
+   client can hold several, so add them as you go rather than replacing them.
+5. Copy the template and fill in your client ID and secret:
 
    ```
    copy config.template.js config.js      # Windows
-   cp config.template.js config.js        # macOS / Linux
+   cp config.template.js config.js        # macOS and Linux
    ```
 
-5. `config.js` is git-ignored, so your ID stays out of the repository. Everything else, including `background.js`, is committed normally.
+6. `config.js` is git-ignored, so your credentials stay out of the repository.
+   Everything else, including `background.js`, is committed normally.
 
-See `config.template.js` for the full step-by-step instructions, including where to find your extension's ID for the credential setup.
+`config.template.js` has the full step-by-step version, including the consent
+screen settings.
 
-A note on what is and isn't secret: a client ID for an installed application is **not** a credential. It ships inside every published extension and anyone can read it by unpacking the XPI or CRX. Google documents it as public. It is kept out of the repository because it identifies a specific Google Cloud project, not because leaking it would compromise an account. The OAuth *client secret* is the thing that must never be committed, and this extension does not use one.
+### A note on what is and is not secret
 
-## Usage
+A **client ID** is not a credential. It ships inside every published extension
+and anyone can read it by unpacking the XPI or CRX, and Google documents it as
+public. It is kept out of the repository because it identifies a specific Google
+Cloud project, not because leaking it would compromise anything.
 
-1. Click the Auto Auth Filler icon in the toolbar.
-2. Click "Sign in with Google" and approve the read-only Gmail permission.
-3. Visit any site that emails you a verification code. When the extension detects a code field, it fills in the code and the overlay shows where it came from.
+The **client secret** is more awkward. Google's Web application client type
+requires it at the token endpoint even when PKCE is used, which the token
+endpoint confirms by answering `client_secret is missing` without it. Since
+Firefox forces that client type, the secret has to ship inside the package too,
+and anyone who unpacks the extension can read it.
+
+That is why the authorization flow uses PKCE with SHA-256: an intercepted
+authorization code cannot be redeemed without the verifier, which never leaves
+the extension. Use a client dedicated to this extension, and never one shared
+with a server-side application where the secret really does need protecting.
+
+## First run
+
+1. Click the extension icon in the toolbar.
+2. Click **Sign in with Google** and approve the read-only Gmail permission.
+3. Visit any site that emails you a verification code. When the extension finds a
+   code field, it enters the code and the overlay shows where it came from.
+
+You sign in once. The extension stores a refresh token and renews access
+silently, so the consent screen does not come back.
 
 ## Settings
 
 Open the settings page from the popup footer.
 
-| Setting                   | Default    | Description                                                                |
-| ------------------------- | ---------- | -------------------------------------------------------------------------- |
-| Fill automatically        | On         | Enters the code as soon as it is found. Password fields always wait for a click. |
-| Auto-submit after filling | On         | Automatically activates the form's submit button once the field is filled. |
-| Maximum code age          | 10 minutes | Codes found in older emails are ignored.                                   |
-| Blocked domains           | Empty      | Domains, one per line, where the overlay should never appear.              |
+| Setting | Default | Description |
+| --- | --- | --- |
+| Fill automatically | On | Enters the code as soon as it is found. Password fields always wait for a click. |
+| Auto-submit after filling | On | Activates the form's submit button once the field is filled. |
+| Maximum code age | 10 minutes | Codes found in older emails are ignored. |
+| Blocked domains | Empty | Domains, one per line, where the overlay never appears. |
 
 ## Privacy and permissions
 
-The full policy is in [PRIVACY.md](PRIVACY.md), including the Google API Services Limited Use disclosure. In summary:
+The full policy is in [PRIVACY.md](PRIVACY.md), including the Google API Services
+Limited Use disclosure. In summary:
 
-- The only Gmail scope requested is `gmail.readonly`. The extension cannot send, delete, or modify any email.
-- The short-lived access token is kept in session storage and is cleared when the browser closes. The refresh token is kept in the browser's local storage, because it has to survive a restart. That is what keeps you signed in instead of facing a consent screen every hour. Both are removed, and the grant is revoked with Google, when you press **Sign out**.
-- No data leaves your browser. There is no external server, analytics, or telemetry of any kind.
-- Email bodies are processed in memory only, for as long as it takes to look for a code, and are never written to disk or logged.
+- The only Gmail scope requested is `gmail.readonly`. The extension cannot send,
+  delete or modify any email.
+- The short-lived access token is kept in session storage and cleared when the
+  browser closes. The refresh token is kept in local storage, because it has to
+  survive a restart. That is what keeps you signed in instead of facing a consent
+  screen every hour. Pressing **Sign out** deletes both and revokes the grant with
+  Google.
+- No data leaves your browser. There is no external server, no analytics and no
+  telemetry.
+- Email bodies are processed in memory only, for as long as it takes to look for a
+  code, and are never written to disk or logged.
 
-A full breakdown of why each permission is requested is available in `STORE_LISTING.md`.
+The content script runs on all sites because a verification field can appear on
+any site. It inspects only form-field metadata: names, labels, input types,
+maximum lengths and the surrounding form text. On a page where nothing scores
+above the detection threshold it does nothing at all, and makes no network
+request.
 
 ## Building a release package
 
-Run `package.bat` (Windows) or `package.sh` (macOS/Linux) from the project root. Both scripts assemble a clean copy of the extension's files into a `dist` folder and produce ZIP archives ready for submission to the Chrome Web Store and Firefox AMO. `config.js` is included in the package, since the extension cannot authenticate without it, so make sure it holds *your* Client ID before you upload anything.
+Run `package.bat` on Windows or `package.sh` on macOS and Linux from the project
+root. Each script copies the extension files into `dist` and produces two ZIP
+archives, one per store.
+
+The two packages differ in one place. `manifest.json` carries both
+`background.service_worker` and `background.scripts` so the folder loads unpacked
+in either browser, but shipping both is not acceptable: Chrome warns that
+`background.scripts` requires manifest version 2, and addons.mozilla.org warns
+that `background.service_worker` is ignored. `make-manifest.js` strips the
+irrelevant key for each target.
+
+`config.js` is included in the package, since the extension cannot authenticate
+without it, so make sure it holds your own credentials before uploading anything.
 
 ## Project structure
 
 ```
 .
-├── background.js        Service worker: OAuth flow, Gmail search, code extraction
-├── config.js            Your Client ID. Git-ignored; create it from the template
-├── content.js           Detects fields on the page and renders the overlay
-├── popup.html / .js     Toolbar popup UI
+├── background.js        Background worker: OAuth, Gmail search, code extraction
+├── config.js            Your credentials. Git-ignored; create it from the template
+├── config.template.js   Template and instructions for your own OAuth client
+├── content.js           Field detection, overlay, filling
+├── popup.html / .js     Toolbar popup
 ├── options.html / .js   Settings page
-├── styles.css           Overlay styling
-├── manifest.json        Extension manifest (Manifest V3)
-├── config.template.js   Template and instructions for your own OAuth Client ID
-├── icons/               Toolbar and store icons
+├── styles.css           Overlay styling, isolated from the host page
+├── manifest.json        Manifest V3, with the gecko block for Firefox
+├── make-manifest.js     Writes the per-browser manifest when packaging
 ├── package.bat / .sh    Packaging scripts for store submission
-├── SETUP.md             Setup and usage guide
-└── STORE_LISTING.md     Draft listing copy and permissions justification for store review
+├── icons/               Toolbar and store icons
+├── site/                The public website and privacy policy
+├── PRIVACY.md           Privacy policy
+└── CHANGELOG.md         Release history
 ```
 
 ## Screenshots
 
-Add screenshots to a `docs/screenshots` folder and reference them here once they exist, for example:
+Add screenshots to a `docs/screenshots` folder and reference them here once they
+exist, for example:
 
 ```
 docs/screenshots/overlay-on-login-page.png
@@ -121,11 +219,14 @@ docs/screenshots/settings-page.png
 docs/screenshots/sign-in-flow.png
 ```
 
-These same images double as the assets requested during Chrome Web Store and Firefox AMO submission, so capturing them once covers both the README and the store listing.
+The same images are the assets requested during Chrome Web Store and AMO
+submission, so capturing them once covers both.
 
 ## Contributing
 
-Issues and pull requests are welcome. If you are changing how OTP detection or extraction works, please describe the kind of page or email format you tested against, since that logic is heuristic by nature and small adjustments can have wide effects.
+Issues and pull requests are welcome. If you are changing how detection or
+extraction works, please describe the kind of page or email format you tested
+against. That logic is heuristic, and small adjustments have wide effects.
 
 ## License
 
