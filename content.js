@@ -240,6 +240,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   if (!error && (!otp || alreadyTried) && session) {
     if (Date.now() < session.deadline) {
+      trace(alreadyTried ? `already tried ${otp}, waiting for a newer one` : "nothing found yet, waiting");
       statusEl.textContent = alreadyTried
         ? "Waiting for a newer code…"
         : "Waiting for a new code…";
@@ -262,6 +263,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
     }
 
     session = null;
+    trace("watch ended");
 
     // Only report failure if nothing was ever entered. After a successful fill
     // this is just the watch expiring, which is not news.
@@ -368,6 +370,8 @@ async function fillOTP(otp, knownInputs) {
     });
   }
 
+  trace(`filling ${otp}`);
+
   const statusEl = overlay?.querySelector(".aaf-status");
   if (statusEl) statusEl.textContent = "✅ Filled";
 
@@ -378,6 +382,7 @@ async function fillOTP(otp, knownInputs) {
     // Say so when the form was left for the user. Silence here is
     // indistinguishable from a submit that worked, and the difference matters
     // when the code expires in a few minutes.
+    trace(submitted ? "submit clicked" : "no enabled submit button found");
     if (!submitted && statusEl) statusEl.textContent = "✅ Filled, submit manually";
   }
 
@@ -386,6 +391,7 @@ async function fillOTP(otp, knownInputs) {
   // this the user has to clear the box by hand before anything happens again.
   // When a newer code arrives it simply replaces what is there.
   if (session && Date.now() < session.deadline) {
+    trace("watching for a newer code");
     if (statusEl) statusEl.textContent += " · watching";
     setTimeout(requestOTP, POLL_INTERVAL_MS);
     return;
@@ -530,11 +536,35 @@ function shouldSearch(inputs) {
   if (!inputs || inputs.length === 0) return false;
   if (Date.now() - lastSearchStartedAt < RESEARCH_COOLDOWN_MS) return false;
 
-  // A field that already holds a value needs nothing, whether this extension
-  // filled it or the user typed it. Once the cooldown passes, clearing the
-  // field deliberately does start a fresh search, which is what someone
-  // retrying a failed code expects.
-  return inputs.some((el) => !el.value);
+  // An empty field obviously needs one.
+  if (inputs.some((el) => !el.value)) return true;
+
+  // The field is full, but with a code this extension put there. If the site
+  // rejected it, a newer one must be able to replace it, so keep looking.
+  //
+  // This is the second, independent route to recovery. The lookup that filled
+  // the field also keeps watching, but that depends on the overlay and the
+  // session surviving whatever the page does after a failed submit. This route
+  // needs nothing except the value sitting in the box, so it survives the
+  // overlay being closed, the form re-rendering, or the watch expiring.
+  //
+  // It cannot bring back the flickering overlay: a lookup that turns up only a
+  // code already entered here waits rather than refilling, and the cooldown
+  // caps how often any of this can restart.
+  return attemptedCodes.has(currentFieldValue(inputs));
+}
+
+// What the field currently holds, split-digit boxes joined back together.
+function currentFieldValue(inputs) {
+  return inputs.length === 1 ? inputs[0].value : inputs.map((el) => el.value).join("");
+}
+
+// A trail of what the extension decided and why. This is heuristic code running
+// against pages nobody controls, so when it does the wrong thing on some site
+// the console is the only way to find out where it went wrong. console.debug is
+// hidden unless the level is turned on, so it costs an ordinary user nothing.
+function trace(message) {
+  console.debug("[Auto Auth Filler] " + message);
 }
 
 async function init() {
@@ -545,6 +575,7 @@ async function init() {
   if (!shouldSearch(inputs)) return;
 
   lastSearchStartedAt = Date.now();
+  trace(`lookup started, ${inputs.length} field(s)`);
   session = {
     // Codes older than this are from an earlier attempt at the same site. On a
     // second sign-in the previous code is usually still within the age limit,

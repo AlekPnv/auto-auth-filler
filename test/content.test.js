@@ -325,3 +325,38 @@ test("the freshness window is short enough to exclude a previous attempt", () =>
   assert.ok(lookback <= 60000, `lookback is ${lookback}ms, too generous`);
   assert.ok(lookback >= 30000, `lookback is ${lookback}ms, mail arriving early would be missed`);
 });
+
+test("a field holding a code we entered may be searched again", () => {
+  // The recovery route that does not depend on the overlay or the session
+  // surviving. After a rejected code the field is full, and the old rule
+  // "a full field needs nothing" is what left the page stuck.
+  const cs = loadContentScript();
+  const boxes = ["6", "8", "V", "N", "B", "F"].map(field);
+
+  assert.strictEqual(
+    cs.shouldSearch(boxes), false,
+    "a full field holding an unknown value is left alone",
+  );
+
+  cs.call('attemptedCodes.add("68VNBF")');
+  assert.strictEqual(
+    cs.shouldSearch(boxes), true,
+    "a full field holding a code we entered must be searchable again",
+  );
+});
+
+test("a code the user typed themselves is not overwritten", () => {
+  // Only values this extension entered qualify. Someone who typed their own
+  // code must not have it replaced underneath them.
+  const cs = loadContentScript();
+  cs.call('attemptedCodes.add("111111")');
+  assert.strictEqual(cs.shouldSearch([field("999999")]), false);
+});
+
+test("the single-field and split-digit cases read the same value", () => {
+  const cs = loadContentScript();
+  assert.strictEqual(cs.currentFieldValue([field("68VNBF")]), "68VNBF");
+  assert.strictEqual(
+    cs.currentFieldValue(["6", "8", "V", "N", "B", "F"].map(field)), "68VNBF",
+  );
+});

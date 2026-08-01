@@ -5,6 +5,17 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.3] - 2026-07-31
+
+### Fixed
+
+- **Recovery from a rejected code no longer depends on the overlay surviving.** 3.7.2 kept the lookup open after filling so a newer code could replace a rejected one, but that only works while the overlay and its session are alive, and a page that re-renders or navigates after a failed submit takes both away. The field is then full and the rule "a full field needs no lookup" left the page stuck, which is exactly what happened on Blizzard. A field holding a code this extension entered is now searchable again, which needs nothing except the value in the box and therefore survives anything the page does. The earlier watch stays as well, so there are two independent routes to the same recovery.
+- A value the user typed themselves is still never overwritten. Only codes the extension entered on that page qualify.
+
+### Added
+
+- A debug trace. The extension logs what it decided and why at each step, through `console.debug`, which is hidden unless the console's debug level is switched on. This is heuristic code running against pages nobody controls, and when it misbehaves on a particular site the console is the only way to see where it went wrong.
+
 ## [3.7.2] - 2026-07-31
 
 ### Fixed
@@ -180,6 +191,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.7.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.3
 [3.7.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.2
 [3.7.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.1
 [3.7.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.0
