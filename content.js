@@ -12,6 +12,11 @@ let lastSearchStartedAt = 0;
 // over, which is what made it flicker.
 let session = null;
 
+// Which email the current code came from, kept so the fill status can keep
+// showing it. Overwriting it with "Filled" meant the source was on screen for
+// a few milliseconds and nobody ever saw it.
+let codeSource = "";
+
 // Filling a field is itself a DOM change, so the observer wakes immediately
 // afterwards and finds the same field again. Without a guard the overlay would
 // close, reopen, search, fill and close again for as long as the page stayed
@@ -364,9 +369,11 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   // Name the sender when it does not match this site, so it is obvious the code
   // belongs to something else before anyone clicks.
-  statusEl.textContent = fromElsewhere
-    ? `⚠ From ${truncate(details.sender || subject, 28)}${age}`
-    : truncate(subject, 48) + age;
+  codeSource = fromElsewhere
+    ? `⚠ From ${truncate(details.sender || subject, 26)}${age}`
+    : truncate(subject, 40) + age;
+
+  statusEl.textContent = codeSource;
 
   // Built with DOM calls instead of innerHTML: the code originates in email
   // content, and add-on review flags every dynamic innerHTML assignment.
@@ -460,8 +467,11 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
   // the console of an arbitrary page.
   trace(`filling a ${otp.length} character code`);
 
+  // Keep naming the email rather than replacing it with "Filled". Knowing
+  // which message a code came from is the point of showing anything at all,
+  // and the tick already says it was entered.
   const statusEl = overlay?.querySelector(".aaf-status");
-  if (statusEl) statusEl.textContent = "✅ Filled";
+  if (statusEl) statusEl.textContent = codeSource ? `✅ ${codeSource}` : "✅ Filled";
 
   const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
 
@@ -471,7 +481,11 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
     // indistinguishable from a submit that worked, and the difference matters
     // when the code expires in a few minutes.
     trace(submitted ? "submit clicked" : "no enabled submit button found");
-    if (!submitted && statusEl) statusEl.textContent = "✅ Filled, submit manually";
+    if (!submitted && statusEl) {
+      statusEl.textContent = codeSource
+        ? `✅ ${codeSource} · submit manually`
+        : "✅ Filled, submit manually";
+    }
   }
 
   // Keep watching rather than closing. A rejected code leaves the field holding
@@ -691,6 +705,7 @@ async function init() {
   if (!shouldSearch(inputs)) return;
 
   lastSearchStartedAt = Date.now();
+  codeSource = ""; // belongs to the previous lookup, not this one
   trace(`lookup started, ${inputs.length} field(s)`);
   session = {
     // Codes older than this are from an earlier attempt at the same site. On a

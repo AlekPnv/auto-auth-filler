@@ -5,6 +5,12 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.4] - 2026-07-31
+
+### Fixed
+
+- **The overlay never actually showed which email the code came from.** It set the subject and the age, then the fill overwrote the line with "Filled" a few milliseconds later, so with automatic filling on nobody could ever see it. The documentation and the demo script both described a feature that was invisible in practice. The source stays on screen now, with a tick in front of it to show the code was entered.
+
 ## [3.8.3] - 2026-07-31
 
 ### Added
@@ -228,6 +234,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.8.4]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.4
 [3.8.3]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.3
 [3.8.2]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.2
 [3.8.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.8.1
