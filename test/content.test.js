@@ -223,3 +223,66 @@ test("a field outside any form is still scored", () => {
   const score = cs.scoreInput(input({ name: "otp", inputMode: "numeric", maxLength: 6 }));
   assert.ok(score >= THRESHOLD, `scored ${score} with no surrounding form`);
 });
+
+// ---------------------------------------------------------------------------
+// Submit button selection. Clicking a disabled button does nothing and reports
+// nothing, so a form that validates before enabling its button looked exactly
+// like a successful submit.
+// ---------------------------------------------------------------------------
+
+// A stand-in for a button. offsetWidth defaults to visible.
+function button({ text = "", disabled = false, ariaDisabled = null, width = 100 } = {}) {
+  return {
+    innerText: text,
+    offsetWidth: width,
+    disabled,
+    getAttribute: (key) => (key === "aria-disabled" ? ariaDisabled : null),
+  };
+}
+
+function pageWith(buttons) {
+  const cs = loadContentScript();
+  cs.document.querySelectorAll = () => buttons;
+  return cs;
+}
+
+test("a disabled submit button is not chosen", () => {
+  const cs = pageWith([button({ text: "Verify", disabled: true })]);
+  assert.strictEqual(
+    cs.findSubmitButton(null), null,
+    "a disabled button must count as not found, so the caller can wait for it",
+  );
+});
+
+test("aria-disabled is respected on elements that are not real buttons", () => {
+  const cs = pageWith([button({ text: "Continue", ariaDisabled: "true" })]);
+  assert.strictEqual(cs.findSubmitButton(null), null);
+});
+
+test("an enabled button is chosen", () => {
+  const target = button({ text: "Verify" });
+  const cs = pageWith([target]);
+  assert.strictEqual(cs.findSubmitButton(null), target);
+});
+
+test("an invisible button is skipped", () => {
+  const cs = pageWith([button({ text: "Submit", width: 0 })]);
+  assert.strictEqual(cs.findSubmitButton(null), null);
+});
+
+test("the enabled button wins over a disabled one earlier in the page", () => {
+  const enabled = button({ text: "Continue" });
+  const cs = pageWith([button({ text: "Verify", disabled: true }), enabled]);
+  assert.strictEqual(cs.findSubmitButton(null), enabled);
+});
+
+test("German button text is recognised", () => {
+  const target = button({ text: "Bestätigen" });
+  const cs = pageWith([target]);
+  assert.strictEqual(cs.findSubmitButton(null), target);
+});
+
+test("an unrelated button is not treated as submit", () => {
+  const cs = pageWith([button({ text: "Add to basket" }), button({ text: "Close" })]);
+  assert.strictEqual(cs.findSubmitButton(null), null);
+});

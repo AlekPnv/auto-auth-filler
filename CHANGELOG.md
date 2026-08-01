@@ -5,6 +5,17 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.1] - 2026-07-31
+
+### Fixed
+
+- **Auto-submit silently did nothing on forms that validate before enabling their button.** The submit button was clicked once, three hundred milliseconds after filling, without checking whether it was enabled. Clicking a disabled button does nothing and reports nothing, so a form whose own script had not finished validating looked exactly like a successful submit. Disabled buttons are now skipped, `aria-disabled` included, and the extension waits up to two and a half seconds for one to become usable instead of firing once and giving up.
+- When no submit button becomes available, the overlay says "Filled, submit manually" and stays a little longer. Saying nothing was indistinguishable from a submit that worked, which matters when the code expires in minutes.
+
+### Added
+
+- Tests for submit button selection, covering disabled buttons, `aria-disabled`, invisible buttons, German button text, and preferring an enabled button over a disabled one earlier in the page.
+
 ## [3.7.0] - 2026-07-31
 
 ### Changed
@@ -161,6 +172,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.7.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.1
 [3.7.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.7.0
 [3.6.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.6.0
 [3.5.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.1

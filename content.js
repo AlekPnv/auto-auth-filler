@@ -36,6 +36,10 @@ const BUSY_RETRY_MS = 1200;
 const MAX_BUSY_RETRIES = 5;
 const SEARCH_TIMEOUT_MS = 20000;
 
+// How long to keep looking for a submit button that is present and enabled.
+const SUBMIT_WAIT_MS = 2500;
+const SUBMIT_POLL_MS = 150;
+
 // Firefox implements the chrome namespace with callbacks, so calling these
 // without one returns undefined rather than a promise. Chrome accepts callbacks
 // too, so wrapping them gives one code path that is correct in both engines.
@@ -339,11 +343,43 @@ async function fillOTP(otp, knownInputs) {
   if (statusEl) statusEl.textContent = "✅ Filled";
 
   const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
-  if (autoSubmit !== false) {
-    // Give the page a moment to react to the input events before submitting.
-    setTimeout(() => findSubmitButton(inputs[0])?.click(), 300);
+  if (autoSubmit === false) {
+    setTimeout(removeOverlay, 1500);
+    return;
   }
-  setTimeout(removeOverlay, 1500);
+
+  const submitted = await clickSubmitWhenReady(inputs[0]);
+
+  // Say so when the form was left for the user. Silence here is indisting-
+  // uishable from a submit that failed, and the difference matters when the
+  // code expires in a few minutes.
+  if (!submitted && statusEl) statusEl.textContent = "✅ Filled, submit manually";
+  setTimeout(removeOverlay, submitted ? 1500 : 4000);
+}
+
+// Waits for a usable submit button rather than clicking once and hoping. The
+// page needs a moment to process the input events, and its button often stays
+// disabled until it has.
+function clickSubmitWhenReady(nearInput) {
+  const deadline = Date.now() + SUBMIT_WAIT_MS;
+
+  return new Promise((resolve) => {
+    const attempt = () => {
+      const button = findSubmitButton(nearInput);
+      if (button) {
+        button.click();
+        resolve(true);
+        return;
+      }
+      if (Date.now() >= deadline) {
+        resolve(false);
+        return;
+      }
+      setTimeout(attempt, SUBMIT_POLL_MS);
+    };
+
+    setTimeout(attempt, 300);
+  });
 }
 
 function copyOTP(otp) {
@@ -389,6 +425,11 @@ function findSubmitButton(nearInput) {
   for (const scope of scopes) {
     for (const el of scope.querySelectorAll('button, input[type="submit"], [role="button"]')) {
       if (el.offsetWidth === 0) continue;
+      // Clicking a disabled button does nothing at all, silently. Code forms
+      // routinely keep theirs disabled until their own script has validated the
+      // field, so treat one as not found rather than clicking into the void.
+      if (el.disabled || el.getAttribute("aria-disabled") === "true") continue;
+
       const text = (el.innerText ?? el.textContent ?? el.value ?? "").toLowerCase();
       if (keywords.some((kw) => text.includes(kw))) return el;
     }
