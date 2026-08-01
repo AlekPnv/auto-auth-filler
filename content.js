@@ -209,7 +209,7 @@ function setOverlaySearching() {
   overlay.querySelector(".aaf-actions").hidden = true;
 }
 
-async function setOverlayResult(otp, subject, ageMins, error) {
+async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
   if (!overlay) return;
 
   const statusEl = overlay.querySelector(".aaf-status");
@@ -251,7 +251,13 @@ async function setOverlayResult(otp, subject, ageMins, error) {
   session = null;
 
   const age = ageMins != null ? ` · ${ageMins}m ago` : "";
-  statusEl.textContent = truncate(subject, 48) + age;
+  const fromElsewhere = details.matchesSite === false;
+
+  // Name the sender when it does not match this site, so it is obvious the code
+  // belongs to something else before anyone clicks.
+  statusEl.textContent = fromElsewhere
+    ? `⚠ From ${truncate(details.sender || subject, 28)}${age}`
+    : truncate(subject, 48) + age;
 
   // Built with DOM calls instead of innerHTML: the code originates in email
   // content, and add-on review flags every dynamic innerHTML assignment.
@@ -275,6 +281,12 @@ async function setOverlayResult(otp, subject, ageMins, error) {
 
   actionsEl.append(fillBtn, copyBtn, codeEl);
   actionsEl.hidden = false;
+
+  // A code from a different service is shown but never entered. Typing one
+  // site's code into another's form is worse than doing nothing: it can be
+  // submitted automatically, and it teaches the user to trust a value that was
+  // never meant for that page.
+  if (fromElsewhere) return;
 
   // Fill without waiting for a click, which is the point of the extension.
   // Password-type fields are excluded: those are the ones where a wrong guess
@@ -377,7 +389,7 @@ function findSubmitButton(nearInput) {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "OTP_RESULT") {
     clearTimeout(searchTimeout);
-    setOverlayResult(msg.otp, msg.subject, msg.ageMins, msg.error);
+    setOverlayResult(msg.otp, msg.subject, msg.ageMins, msg.error, msg);
   }
   if (msg.type === "AUTH_READY") {
     if (overlay) {
@@ -405,6 +417,12 @@ async function requestOTP() {
   const response = await sendToBackground({
     type: "GET_OTP",
     inputMaxLen,
+    // A split-digit widget holds exactly one character per box, so its box
+    // count is a requirement, not a hint. A single field's maxlength is only an
+    // upper bound and stays a preference.
+    exactLength: inputs && inputs.length > 1 ? inputs.length : undefined,
+    // Lets the worker tell whether a message came from this service at all.
+    siteHost: window.location.hostname,
     notBefore: session?.notBefore ?? 0,
   });
 

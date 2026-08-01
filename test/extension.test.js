@@ -256,6 +256,58 @@ test("findLatestOTP skips codes older than notBefore", async (t) => {
   });
 });
 
+test("a code is only offered for the site that sent it", async (t) => {
+  // Filling one service's code into another's form is the extension actively
+  // doing the wrong thing, and auto-submit can send it before anyone reads it.
+  const cases = [
+    ["Steam page, Steam mail", "store.steampowered.com",
+      "Steam <noreply@steampowered.com>", "Your Steam Guard code", true],
+    ["Steam page, Blizzard mail", "store.steampowered.com",
+      "Battle.net <noreply@battle.net>", "Battle.net Account Verification", false],
+    ["Blizzard page, Blizzard mail", "battle.net",
+      "Battle.net <noreply@battle.net>", "Battle.net Account Verification", true],
+    ["same brand, different domain", "steamcommunity.com",
+      "Steam <noreply@steampowered.com>", "Steam Guard", true],
+    ["brand named only in the subject", "battle.net",
+      "Blizzard <no-reply@blizzard.com>", "Your Battle.net code", true],
+    ["unrelated sender entirely", "twitch.tv",
+      "PayPal <service@paypal.com>", "Your security code", false],
+  ];
+
+  for (const [name, host, from, subject, expected] of cases) {
+    await t.test(name, () => {
+      const matched = bg.call(
+        `messageMatchesSite(siteTokens(${JSON.stringify(host)}), ` +
+        `${JSON.stringify(from)}, ${JSON.stringify(subject)})`,
+      );
+      assert.strictEqual(matched, expected);
+    });
+  }
+});
+
+test("a hostname reduces to the name of the service", () => {
+  const reduce = (host) => bg.call(`siteTokens(${JSON.stringify(host)})`).join(",");
+
+  assert.strictEqual(reduce("store.steampowered.com"), "steampowered");
+  assert.strictEqual(reduce("battle.net"), "battle");
+  assert.strictEqual(reduce("www.epicgames.com"), "epicgames");
+  assert.strictEqual(reduce("id.twitch.tv"), "twitch");
+  assert.strictEqual(reduce("accounts.google.com"), "google");
+  assert.strictEqual(reduce("amazon.de"), "amazon");
+});
+
+test("a code that does not fit the boxes is refused", () => {
+  // Split-digit widgets hold one character per box, so the count is exact.
+  // A six-character code in five boxes silently loses its last character and
+  // submits something that was never the code.
+  const body = "Your security code:\nRXCZMK";
+
+  assert.strictEqual(bg.extractOTP(body), "RXCZMK", "no constraint, found normally");
+  assert.strictEqual(bg.extractOTP(body, undefined, 6), "RXCZMK", "six boxes fit");
+  assert.strictEqual(bg.extractOTP(body, undefined, 5), null, "five boxes must refuse it");
+  assert.strictEqual(bg.extractOTP(body, undefined, 8), null, "eight boxes must refuse it");
+});
+
 test("PKCE challenge matches the RFC 7636 test vector", async () => {
   // Appendix B of RFC 7636. If this fails, the whole OAuth flow is wrong.
   const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";

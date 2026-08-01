@@ -5,6 +5,17 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-07-31
+
+### Fixed
+
+- **A code from one service was filled into another service's form.** Opening Steam after Blizzard put the Battle.net code straight into Steam's boxes. Nothing tied the message to the site, so the newest code always won regardless of who sent it. A lookup now compares the page's hostname against the sender's domain, and against the sender name and subject for services that send from an unrelated domain. A code whose sender does not match is still shown, labelled with who it came from, but it is never entered automatically and never submitted. That is the case where filling something in is worse than doing nothing.
+- **A six-character code was filled into five boxes.** A split-digit widget holds exactly one character per box, so its box count is a requirement rather than a preference, but only the maximum length of a single field was ever considered. The extra character was silently dropped and the truncated value could then be submitted. Codes that do not fit the box count are now rejected outright.
+
+### Note
+
+Domain comparison allows for one brand owning several domains, so `steamcommunity.com` and `steampowered.com` count as the same service, while `battle.net` and `steampowered.com` do not.
+
 ## [3.5.1] - 2026-07-31
 
 ### Changed
@@ -137,6 +148,7 @@ Making the subject searchable in 3.4.0 introduced a false positive found by the 
 
 - This release uses the OAuth implicit grant flow (`response_type=token`). The extension now reads the actual `expires_in` value returned by Google for each token instead of assuming a fixed lifetime, so token refresh timing matches what Google actually grants.
 
+[3.6.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.6.0
 [3.5.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.1
 [3.5.0]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.5.0
 [3.4.1]: https://github.com/AlekPnv/auto-auth-filler/releases/tag/v3.4.1

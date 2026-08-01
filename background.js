@@ -551,7 +551,58 @@ function looksLikeCode(code, { lettersOnlyOk, requireMixed }) {
   return /\d/.test(code) || lettersOnlyOk;
 }
 
-function extractOTP(text, maxLen) {
+// Parts of a hostname that say nothing about which service it is.
+const HOST_NOISE = new Set([
+  "www", "store", "shop", "accounts", "account", "login", "signin", "secure",
+  "my", "app", "apps", "id", "auth", "web", "portal", "member", "members",
+  "user", "users", "mail", "email", "support", "help", "checkout", "m", "en",
+]);
+
+// Not a real public suffix list, just the endings common enough to strip so a
+// hostname reduces to the name of the service.
+const HOST_SUFFIX = new Set([
+  "com", "net", "org", "io", "tv", "co", "gg", "me", "dev", "app", "xyz",
+  "info", "biz", "online", "site", "cloud", "games", "game", "live", "eu",
+  "de", "at", "ch", "it", "fr", "es", "nl", "be", "pl", "uk", "us", "ca",
+  "au", "jp", "cn", "ru", "br", "in",
+]);
+
+function siteTokens(host) {
+  if (!host) return [];
+  return host
+    .toLowerCase()
+    .split(".")
+    .filter((part) => part && !HOST_NOISE.has(part) && !HOST_SUFFIX.has(part));
+}
+
+// One brand often owns several domains, so an exact comparison is too strict:
+// steampowered.com and steamcommunity.com are the same service. A shared prefix
+// of five characters is enough to treat two names as the same brand, and short
+// enough that "battle" and "steampowered" stay unrelated.
+function tokensRelated(a, b) {
+  if (a === b || a.includes(b) || b.includes(a)) return true;
+  let shared = 0;
+  while (shared < a.length && shared < b.length && a[shared] === b[shared]) shared++;
+  return shared >= 5;
+}
+
+// Whether a message plausibly comes from the site the user is signing in to.
+// Without this the newest code wins regardless of who sent it, and a code from
+// one service gets typed into another's form.
+function messageMatchesSite(pageTokens, fromHeader, subject) {
+  if (pageTokens.length === 0) return true; // nothing to compare against
+
+  const senderDomain = (fromHeader.match(/@([^\s>]+)/)?.[1] ?? "").toLowerCase();
+  const senderTokens = siteTokens(senderDomain);
+  if (pageTokens.some((p) => senderTokens.some((s) => tokensRelated(p, s)))) return true;
+
+  // Some services send from an unrelated domain but name themselves in the
+  // subject, as Battle.net does with "Battle.net Account Verification".
+  const text = (fromHeader + " " + subject).toLowerCase();
+  return pageTokens.some((token) => token.length >= 4 && text.includes(token));
+}
+
+function extractOTP(text, maxLen, exactLength) {
   if (!text) return null;
 
   // hex color codes in HTML emails (e.g. #3a3a3a) would otherwise match as 6-digit codes
@@ -573,6 +624,12 @@ function extractOTP(text, maxLen) {
       // but not all, and upper-casing a lowercase code would break those.
       const code = raw.replace(/-/g, "");
       if (!looksLikeCode(code, pattern)) continue;
+
+      // A split-digit widget has one box per character, so its box count is an
+      // exact requirement rather than a preference. Filling a six-character
+      // code into five boxes silently drops the last character and submits
+      // something that was never the code.
+      if (exactLength && code.length !== exactLength) continue;
 
       if (lengthHint && code.length === lengthHint) return code;
       candidates.push(code);
@@ -623,6 +680,9 @@ async function findLatestOTP(settings = {}) {
     .filter((m) => m && Number.isFinite(parseInt(m.internalDate)))
     .sort((a, b) => parseInt(b.internalDate) - parseInt(a.internalDate));
 
+  const pageTokens = siteTokens(settings.siteHost);
+  let unmatched = null;
+
   for (const msg of candidates) {
     const sentAt = parseInt(msg.internalDate);
     const ageMins = (now - sentAt) / 60000;
@@ -634,9 +694,11 @@ async function findLatestOTP(settings = {}) {
     // otherwise win, being the newest one that exists at that instant.
     if (settings.notBefore && sentAt < settings.notBefore) continue;
 
-    const subject =
-      msg.payload?.headers?.find((h) => h.name.toLowerCase() === "subject")?.value ??
-      "(no subject)";
+    const header = (name) =>
+      msg.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value ?? "";
+
+    const subject = header("subject") || "(no subject)";
+    const from = header("from");
 
     const bodyText = extractBody(msg.payload);
     // The subject is searched too. Plenty of services put the code in it, as in
@@ -644,12 +706,24 @@ async function findLatestOTP(settings = {}) {
     // Newlines keep the three sources from running into one another and
     // forming a match that exists in neither.
     const combined = subject + "\n" + (msg.snippet ?? "") + "\n" + bodyText;
-    const otp = extractOTP(combined, settings.inputMaxLen);
+    const otp = extractOTP(combined, settings.inputMaxLen, settings.exactLength);
+    if (!otp) continue;
 
-    if (otp) return { otp, subject, ageMins: Math.round(ageMins) };
+    // "Battle.net <noreply@battle.net>" reduced to "Battle.net", for the overlay.
+    const sender = from.replace(/<[^>]*>/, "").replace(/"/g, "").trim() || from;
+    const result = { otp, subject, sender, ageMins: Math.round(ageMins) };
+
+    if (messageMatchesSite(pageTokens, from, subject)) {
+      return { ...result, matchesSite: true };
+    }
+
+    // Hold the newest code from an unrelated sender as a fallback, but keep
+    // looking: a matching message further down is the better answer even though
+    // it is older.
+    if (!unmatched) unmatched = { ...result, matchesSite: false };
   }
 
-  return { otp: null };
+  return unmatched ?? { otp: null };
 }
 
 // Guards against overlapping Gmail fetches triggered by rapid DOM mutations.
@@ -694,7 +768,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return findLatestOTP({
         ...settings,
         inputMaxLen: msg.inputMaxLen,
+        exactLength: msg.exactLength,
         notBefore: msg.notBefore,
+        siteHost: msg.siteHost,
       });
     }).then((result) => {
       releaseFetchLock();
