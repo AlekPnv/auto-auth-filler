@@ -5,6 +5,16 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.1] - 2026-08-02
+
+### Fixed
+
+- **A short country-code ending counted as a brand name, so one service's code could be filled into another's form.** `notion.so` reduced to the tokens `notion` and `so`, because `so` was missing from the list of endings that get stripped. The sender check treats one token containing another as the same brand, which is what lets `steamcommunity` match `steampowered`, and `so` sits inside `sony`, `sonos` and `solarwinds`. A Sony code arriving while the user was on Notion's login form would have been entered and submitted, which is precisely what that check exists to prevent. Short endings that services use as their entire domain are now stripped like any other suffix, and containment counts only when both tokens are at least three characters, so `hbo` still matches `hbomax` while `so` no longer matches `sony`.
+
+### Changed
+
+- The settings page takes its version from the manifest instead of carrying a second copy in the markup, where it had to be edited by hand and had already fallen behind.
+
 ## [3.9.0] - 2026-08-02
 
 ### Fixed

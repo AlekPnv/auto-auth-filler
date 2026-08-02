@@ -272,6 +272,12 @@ test("a code is only offered for the site that sent it", async (t) => {
       "Blizzard <no-reply@blizzard.com>", "Your Battle.net code", true],
     ["unrelated sender entirely", "twitch.tv",
       "PayPal <service@paypal.com>", "Your security code", false],
+    // notion.so once reduced to ["notion", "so"], and "so" is inside "sony",
+    // so a Sony code would have been typed into Notion's form.
+    ["short ccTLD is not a brand", "www.notion.so",
+      "Sony <no-reply@sony.com>", "Your verification code", false],
+    ["the real sender still matches", "www.notion.so",
+      "Notion <no-reply@notion.so>", "Your login code", true],
   ];
 
   for (const [name, host, from, subject, expected] of cases) {
@@ -294,6 +300,9 @@ test("a hostname reduces to the name of the service", () => {
   assert.strictEqual(reduce("id.twitch.tv"), "twitch");
   assert.strictEqual(reduce("accounts.google.com"), "google");
   assert.strictEqual(reduce("amazon.de"), "amazon");
+  // Services that use a short ccTLD as their whole domain.
+  assert.strictEqual(reduce("www.notion.so"), "notion");
+  assert.strictEqual(reduce("bit.ly"), "bit");
 });
 
 test("a code that does not fit the boxes is refused", () => {

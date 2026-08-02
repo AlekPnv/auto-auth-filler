@@ -2,6 +2,12 @@
 
 function $(id) { return document.getElementById(id); }
 
+// Read the version from the manifest rather than repeating it in the markup,
+// where it silently went stale every time the manifest was bumped.
+document.addEventListener("DOMContentLoaded", () => {
+  $("version").textContent = "Settings v" + chrome.runtime.getManifest().version;
+});
+
 function showFeedback(id, text = "Saved ✓") {
   const el = $(id);
   el.textContent = text;

@@ -588,6 +588,11 @@ const HOST_SUFFIX = new Set([
   "info", "biz", "online", "site", "cloud", "games", "game", "live", "eu",
   "de", "at", "ch", "it", "fr", "es", "nl", "be", "pl", "uk", "us", "ca",
   "au", "jp", "cn", "ru", "br", "in",
+  // Short endings that real services use as their whole domain. Without these
+  // the ending survives as a brand token: notion.so kept "so", which matches
+  // sony and sonos by substring.
+  "so", "sh", "ly", "to", "is", "ai", "im", "fm", "st", "se", "no", "fi",
+  "dk", "ie", "nz", "za", "mx", "kr", "tw", "hk", "sg", "tr", "cz", "pt",
 ]);
 
 function siteTokens(host) {
@@ -603,7 +608,11 @@ function siteTokens(host) {
 // of five characters is enough to treat two names as the same brand, and short
 // enough that "battle" and "steampowered" stay unrelated.
 function tokensRelated(a, b) {
-  if (a === b || a.includes(b) || b.includes(a)) return true;
+  if (a === b) return true;
+  // Containment only means something once a token is long enough to be a name.
+  // Two letters are inside half the words there are, so requiring three keeps
+  // hbo/hbomax working while stopping so/sony.
+  if (Math.min(a.length, b.length) >= 3 && (a.includes(b) || b.includes(a))) return true;
   let shared = 0;
   while (shared < a.length && shared < b.length && a[shared] === b[shared]) shared++;
   return shared >= 5;
