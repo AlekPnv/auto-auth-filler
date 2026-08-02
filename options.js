@@ -3,9 +3,12 @@
 function $(id) { return document.getElementById(id); }
 
 // Read the version from the manifest rather than repeating it in the markup,
-// where it silently went stale every time the manifest was bumped.
+// where it silently went stale every time the manifest was bumped. Opened
+// outside the extension there is no chrome.runtime, so the label stays plain
+// rather than throwing.
 document.addEventListener("DOMContentLoaded", () => {
-  $("version").textContent = "Settings v" + chrome.runtime.getManifest().version;
+  const version = chrome?.runtime?.getManifest?.().version;
+  if (version) $("version").textContent = "Settings v" + version;
 });
 
 function showFeedback(id, text = "Saved ✓") {

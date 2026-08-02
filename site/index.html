@@ -32,7 +32,8 @@
   main{max-width:44rem;margin-inline:auto;display:flex;flex-direction:column;gap:2.5rem}
   h1{font-family:var(--mono);font-size:clamp(1.9rem,5vw,2.7rem);font-weight:700;
      letter-spacing:-.03em;line-height:1.05}
-  .logo{font-size:2.2rem;line-height:1;margin-bottom:.5rem}
+  .logo{line-height:1;margin-bottom:.5rem;color:var(--blue)}
+  .logo svg{display:block;margin:0 auto}
   h2{font-family:var(--mono);font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:.6rem}
   p{text-wrap:pretty}
   .lede{font-size:1.1rem;color:var(--subtext)}
@@ -56,10 +57,20 @@
 <main>
 
   <header>
-    <!-- The emoji is deliberately outside the h1: Google's branding check
-         compares the heading text against the OAuth consent screen app name,
-         and "🔐 Auto Auth Filler" does not match "Auto Auth Filler". -->
-    <div class="logo" aria-hidden="true">🔐</div>
+    <!-- The padlock is drawn rather than typed. Google's branding check reads
+         the header as plain text and compares it with the OAuth consent screen
+         app name. A padlock emoji here, even outside the h1 and marked
+         aria-hidden, still lands in that text as "[lock] Auto Auth Filler" and
+         fails the comparison, because aria-hidden hides an element from screen
+         readers and not from a text extractor. An SVG carries no characters. -->
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round"
+           stroke-linejoin="round" focusable="false">
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    </div>
     <h1>Auto Auth Filler</h1>
     <p class="lede" style="margin-top:.8rem">
       <strong>Auto Auth Filler is a browser extension for Firefox and Chrome.</strong>
