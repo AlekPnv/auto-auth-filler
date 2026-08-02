@@ -1,0 +1,49 @@
+name: A site does not work
+description: The extension does nothing on a particular site
+labels: ["site-support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        There is no list of supported sites. Detection is scored from the form
+        itself, so a site that fails usually means the scoring missed something,
+        and that is worth knowing about.
+
+        Please do not paste a real code or the email it arrived in.
+
+  - type: input
+    id: site
+    attributes:
+      label: The site
+      placeholder: example.com
+    validations:
+      required: true
+
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where it stops
+      options:
+        - The overlay never appears at all
+        - The overlay appears but says no code was found
+        - It finds a code meant for a different site
+        - It fills the code but the site rejects it
+    validations:
+      required: true
+
+  - type: textarea
+    id: field
+    attributes:
+      label: What the code field looks like
+      description: |
+        One box or several? Digits only or letters too? How many characters?
+        What does the label above it say, in whatever language the site uses?
+    validations:
+      required: true
+
+  - type: input
+    id: language
+    attributes:
+      label: The language the site was in
+      description: Detection ships with English and German only, which is often the answer.
+      placeholder: English

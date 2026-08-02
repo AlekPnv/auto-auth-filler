@@ -1,0 +1,75 @@
+name: Bug report
+description: A code was not found, not filled or filled wrongly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste a real verification code, the email it came from or
+        a screenshot showing either. Nothing here needs the code itself.
+
+  - type: input
+    id: site
+    attributes:
+      label: Which site
+      description: The address of the page where it went wrong, for example notion.so
+      placeholder: example.com
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Firefox
+        - Chrome
+        - Edge
+        - Brave
+        - Opera
+        - Vivaldi
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Shown at the top of the settings page, for example 3.9.1
+      placeholder: "3.9.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened
+      options:
+        - No code field was detected
+        - The field was detected but no code was found
+        - A code was found but not entered
+        - The wrong code was entered
+        - It was entered but not submitted
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: detail
+    attributes:
+      label: What you expected instead
+      description: |
+        The overlay message helps, if there was one. What did it say?
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: The shape of the code, if you know it
+      description: |
+        Not the code itself. Its shape: six digits, four letters and two digits,
+        two groups joined by a hyphen. This is usually what decides whether a
+        pattern matches.
+      placeholder: "six characters, letters and digits mixed, no hyphen"
