@@ -14,6 +14,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Changed
 
 - The settings page takes its version from the manifest instead of carrying a second copy in the markup, where it had to be edited by hand and had already fallen behind.
+- Windows packaging no longer uses `Compress-Archive`. On PowerShell 5.1 it writes nested paths with a backslash, so `icons/icon128.png` was stored as `icons\icon128.png`, which the ZIP specification forbids and addons.mozilla.org rejects outright. `make-zip.ps1` builds the entries itself and refuses to leave an archive behind if any name still contains a backslash. Worth knowing that Python's `zipfile` hides this on Windows: it rewrites the separator while reading, so an archive that fails at the store looks perfectly clean when inspected locally.
 
 ## [3.9.0] - 2026-08-02
 

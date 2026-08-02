@@ -35,17 +35,18 @@ if exist "icons" (
     echo   WARNING: icons\ folder not found
 )
 
+:: make-zip.ps1 rather than Compress-Archive: on PowerShell 5.1 the latter
+:: writes "icons\icon128.png" into the archive, and addons.mozilla.org rejects
+:: that with "Invalid file name in archive".
 echo [3/4] Creating Chrome ZIP (manifest without background.scripts)...
 call node make-manifest.js chrome "%DIST%\manifest.json"
-if exist "%CHROME_ZIP%" del "%CHROME_ZIP%"
-powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath '%CHROME_ZIP%' -Force"
-echo   Created %CHROME_ZIP%
+powershell -NoProfile -ExecutionPolicy Bypass -File "make-zip.ps1" -Source "%DIST%" -Destination "%CHROME_ZIP%"
+if errorlevel 1 goto :failed
 
 echo [4/4] Creating Firefox ZIP (manifest without background.service_worker)...
 call node make-manifest.js firefox "%DIST%\manifest.json"
-if exist "%FIREFOX_ZIP%" del "%FIREFOX_ZIP%"
-powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath '%FIREFOX_ZIP%' -Force"
-echo   Created %FIREFOX_ZIP%
+powershell -NoProfile -ExecutionPolicy Bypass -File "make-zip.ps1" -Source "%DIST%" -Destination "%FIREFOX_ZIP%"
+if errorlevel 1 goto :failed
 
 echo.
 echo Done!  Upload auto-auth-filler-chrome.zip to the Chrome Web Store.
@@ -54,3 +55,10 @@ echo.
 echo REMINDER: Before packaging for public distribution, make sure config.js
 echo           contains YOUR OWN Google OAuth Client ID (see config.template.js).
 endlocal
+exit /b 0
+
+:failed
+echo.
+echo FAILED: the archive was not written. Nothing has been uploaded.
+endlocal
+exit /b 1
