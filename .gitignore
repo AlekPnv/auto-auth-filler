@@ -4,6 +4,7 @@ config.js
 
 # Packaging output
 dist/
+dist-chrome/
 *.zip
 
 # OS / editor noise
