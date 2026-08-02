@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # The suite loads background.js in a vm and reads config values from it,
+      # so a placeholder config has to exist. Real credentials are never needed
+      # and never present here.
+      - name: Create a placeholder config
+        run: cp config.template.js config.js
+
+      - name: Run the test suite
+        run: node --test
+
+      # Lint what actually ships, not the repository. The root holds packaging
+      # scripts and tests that never go into the package, and linting those
+      # reports files that are correctly absent from the upload.
+      - name: Build the packages
+        run: bash package.sh
+
+      - name: Check the add-on against addons.mozilla.org rules
+        run: npx --yes web-ext lint --source-dir dist
