@@ -60,11 +60,23 @@ No email content is stored or sent anywhere outside your browser. Message bodies
 are held in memory only long enough to run the patterns over them, then
 discarded.
 
+## Installing
+
+**Firefox:** [Auto Auth Filler on addons.mozilla.org](https://addons.mozilla.org/firefox/addon/auto-auth-filler/)
+
+The listing is awaiting review, so that link returns a 404 until Mozilla
+approves it. Nothing else needs to change once it does.
+
+**Chrome, Edge and the other Chromium browsers:** submission is in progress.
+
+Installing from the store needs no Google credentials of your own. The published
+package carries its own, so you sign in and it works.
+
 ## Installing from source
 
-The extension is not yet in the browser add-on stores, so it loads as a
-development add-on. You will need your own Google credentials first, described in
-the next section.
+Use this to run an unreleased version, or to run the extension against your own
+Google Cloud project. It loads as a development add-on and needs your own
+credentials, described in the next section.
 
 ### Chrome, Edge, Brave, Opera, Vivaldi
 
