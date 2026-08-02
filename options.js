@@ -2,16 +2,25 @@
 
 function $(id) { return document.getElementById(id); }
 
+// i18n.js is loaded before this file by options.html.
+const T = (key, vars) => AAF_I18N.t(key, vars);
+
 // Read the version from the manifest rather than repeating it in the markup,
 // where it silently went stale every time the manifest was bumped. Opened
 // outside the extension there is no chrome.runtime, so the label stays plain
 // rather than throwing.
 document.addEventListener("DOMContentLoaded", () => {
-  const version = chrome?.runtime?.getManifest?.().version;
-  if (version) $("version").textContent = "Settings v" + version;
+  AAF_I18N.init().then(() => {
+    AAF_I18N.apply();
+    // Written after apply(), which would otherwise overwrite it with the
+    // untranslated subtitle.
+    const version = chrome?.runtime?.getManifest?.().version;
+    $("version").textContent = version ? T("opt.subtitle") + " v" + version : T("opt.subtitle");
+  });
 });
 
-function showFeedback(id, text = "Saved ✓") {
+function showFeedback(id, text) {
+  text = text ?? T("opt.saved");
   const el = $(id);
   el.textContent = text;
   el.classList.add("visible");
@@ -27,7 +36,8 @@ function sendMsg(msg) {
   });
 }
 
-chrome.storage.local.get(["autoFill", "autoSubmit", "maxOTPAge", "blockedDomains"], (res) => {
+chrome.storage.local.get(["autoFill", "autoSubmit", "maxOTPAge", "blockedDomains", "uiLanguage"], (res) => {
+  $("uiLanguage").value = res.uiLanguage ?? "auto";
   $("autoFill").checked = res.autoFill !== false;
   $("autoSubmit").checked = res.autoSubmit !== false;
   $("maxAge").value = res.maxOTPAge ?? 10;
@@ -43,6 +53,19 @@ $("saveBehaviour").addEventListener("click", () => {
 
   chrome.storage.local.set({ autoFill, autoSubmit, maxOTPAge }, () => {
     showFeedback("behaviourFeedback");
+  });
+});
+
+$("saveLanguage").addEventListener("click", () => {
+  const uiLanguage = $("uiLanguage").value;
+  chrome.storage.local.set({ uiLanguage }, () => {
+    // Re-render immediately. Asking someone to reopen the page to see the
+    // language they just chose would be a strange way to confirm it worked.
+    AAF_I18N.lang = AAF_I18N.resolve(uiLanguage);
+    AAF_I18N.apply();
+    const version = chrome?.runtime?.getManifest?.().version;
+    $("version").textContent = version ? T("opt.subtitle") + " v" + version : T("opt.subtitle");
+    showFeedback("languageFeedback");
   });
 });
 
@@ -63,25 +86,25 @@ async function refreshAccountStatus() {
   try {
     const { authenticated } = await sendMsg({ type: "CHECK_AUTH" });
     if (authenticated) {
-      accountStatus.textContent = "✅ Signed in. Gmail access active.";
+      accountStatus.textContent = "✅ " + T("opt.accountActive");
       accountStatus.style.color = "#a6e3a1";
       $("btnLogin").hidden = true;
       $("btnLogout").hidden = false;
     } else {
-      accountStatus.textContent = "Not signed in.";
+      accountStatus.textContent = T("opt.accountNone");
       accountStatus.style.color = "#6c7086";
       $("btnLogin").hidden = false;
       $("btnLogout").hidden = true;
     }
   } catch {
-    accountStatus.textContent = "Could not contact background script.";
+    accountStatus.textContent = T("opt.accountUnreachable");
     accountStatus.style.color = "#f38ba8";
   }
 }
 
 $("btnLogin").addEventListener("click", async () => {
   $("btnLogin").disabled = true;
-  $("btnLogin").textContent = "Signing in…";
+  $("btnLogin").textContent = T("opt.signingIn");
   try {
     const res = await sendMsg({ type: "LOGIN" });
     if (res.ok) {
@@ -94,7 +117,7 @@ $("btnLogin").addEventListener("click", async () => {
     showFeedback("accountFeedback", "Error: " + err.message);
   } finally {
     $("btnLogin").disabled = false;
-    $("btnLogin").textContent = "Sign in with Google";
+    $("btnLogin").textContent = T("opt.signIn");
   }
 });
 

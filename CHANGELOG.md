@@ -5,6 +5,20 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0] - 2026-08-02
+
+### Added
+
+- **The interface can be switched between English and German.** The setting sits on the settings page and offers a third option, matching the browser, which is the default. It changes the popup, the settings page and the overlay that appears on the page itself. Code detection is unaffected: it has always understood both languages at once and continues to, whatever the interface is set to.
+
+  This does not use `chrome.i18n`. That API takes the language from the browser and gives no way to override it, which is the opposite of a switcher. Someone running an English Firefox may still want the German interface, so the language is a stored setting and the lookup is our own, in `i18n.js`.
+
+  A missing translation falls back to English rather than throwing, which means a half-translated release would ship quietly. The test suite therefore fails if either language is missing a key the other has, if a placeholder like `{n}` is dropped in translation, or if any `T("...")` call in the source names a key that does not exist.
+
+### Changed
+
+- The padlock in the popup and on the settings page is drawn as an SVG instead of typed as an emoji, matching the website. A character in the markup is a character that eventually has to be dealt with, as Google's branding check demonstrated.
+
 ## [3.9.1] - 2026-08-02
 
 ### Fixed

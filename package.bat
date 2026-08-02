@@ -16,7 +16,7 @@ mkdir "%DIST%"
 echo [2/4] Copying extension files...
 :: config.js carries your own Client ID and must be present, or the packaged
 :: extension cannot authenticate.
-set "FILES=manifest.json config.js vocabulary.js background.js content.js options.html options.js popup.html popup.js styles.css"
+set "FILES=manifest.json config.js vocabulary.js i18n.js background.js content.js options.html options.js popup.html popup.js styles.css"
 for %%f in (%FILES%) do (
     if exist "%%f" (
         copy "%%f" "%DIST%\%%f" >nul

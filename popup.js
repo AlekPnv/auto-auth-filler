@@ -1,5 +1,9 @@
 // Auto Auth Filler
 
+// Short alias for the string table, which i18n.js puts on globalThis and
+// popup.html loads first.
+const T = (key, vars) => AAF_I18N.t(key, vars);
+
 const $ = (id) => document.getElementById(id);
 
 const authDot       = $("auth-dot");
@@ -28,13 +32,13 @@ async function checkAuth() {
 
   if (authenticated) {
     authDot.className = "dot green";
-    authStatus.textContent = "Signed in to Gmail";
+    authStatus.textContent = T("popup.signedIn");
     actionsAuthed.hidden = false;
     actionsUnauth.hidden = true;
     btnLogout.hidden = false;
   } else {
     authDot.className = "dot red";
-    authStatus.textContent = "Not signed in";
+    authStatus.textContent = T("popup.notSignedIn");
     actionsAuthed.hidden = true;
     actionsUnauth.hidden = false;
     btnLogout.hidden = true;
@@ -53,7 +57,7 @@ async function fetchCode() {
       lastCode = result.otp;
       resultSubject.textContent = result.subject ?? "";
       resultCode.textContent = result.otp;
-      resultAge.textContent = result.ageMins != null ? `${result.ageMins} minute(s) ago` : "";
+      resultAge.textContent = result.ageMins != null ? T("popup.minutesAgo", { n: result.ageMins }) : "";
       resultSection.hidden = false;
       noResultSec.hidden = true;
       btnCopy.hidden = false;
@@ -61,13 +65,13 @@ async function fetchCode() {
       lastCode = null;
       btnCopy.hidden = true;
       noResult.textContent = result.error
-        ? "Error: " + result.error
-        : "No recent code found in Gmail.";
+        ? T("popup.error", { message: result.error })
+        : T("overlay.noCode");
       noResultSec.hidden = false;
       resultSection.hidden = true;
     }
   } catch (err) {
-    noResult.textContent = "Error: " + err.message;
+    noResult.textContent = T("popup.error", { message: err.message });
     noResultSec.hidden = false;
     resultSection.hidden = true;
   } finally {
@@ -94,27 +98,27 @@ function setLoading(on) {
 btnCopy.addEventListener("click", () => {
   if (!lastCode) return;
   navigator.clipboard.writeText(lastCode).then(() => {
-    btnCopy.textContent = "✅ Copied";
-    setTimeout(() => { btnCopy.textContent = "📋 Copy"; }, 1500);
+    btnCopy.textContent = T("popup.copied");
+    setTimeout(() => { btnCopy.textContent = T("popup.copy"); }, 1500);
   });
 });
 
 btnLogin.addEventListener("click", async () => {
   btnLogin.disabled = true;
-  btnLogin.textContent = "Signing in…";
+  btnLogin.textContent = T("popup.signingIn");
   try {
     const res = await sendMsg({ type: "LOGIN" });
     if (res.ok) {
       await checkAuth();
     } else {
-      authStatus.textContent = "Sign-in failed: " + (res.error ?? "unknown error");
+      authStatus.textContent = T("popup.signInFailed", { reason: res.error ?? T("popup.unknownError") });
       authDot.className = "dot red";
     }
   } catch (err) {
-    authStatus.textContent = "Error: " + err.message;
+    authStatus.textContent = T("popup.error", { message: err.message });
   } finally {
     btnLogin.disabled = false;
-    btnLogin.textContent = "Sign in with Google";
+    btnLogin.textContent = T("popup.signIn");
   }
 });
 
@@ -140,4 +144,9 @@ function sendMsg(msg) {
   });
 }
 
-checkAuth();
+// Resolve the language, translate the static markup, then render. Doing this
+// before checkAuth() stops the popup showing English for an instant.
+AAF_I18N.init().then(() => {
+  AAF_I18N.apply();
+  checkAuth();
+});

@@ -145,6 +145,19 @@ if (!globalThis.AAF_TERMS) {
   );
 }
 
+if (!globalThis.AAF_I18N) {
+  console.error(
+    "[Auto Auth Filler] i18n.js did not load before content.js. " +
+      "Check the content_scripts js order in manifest.json.",
+  );
+}
+
+// The overlay is the only part of the extension most people ever read, so it
+// follows the chosen language too. Falling back to the key would be visible, so
+// a missing table degrades to English rather than to nothing.
+const T = (key, vars) =>
+  globalThis.AAF_I18N ? globalThis.AAF_I18N.t(key, vars) : key;
+
 const {
   nameStrong: NAME_STRONG,
   nameMedium: NAME_MEDIUM,
@@ -276,7 +289,7 @@ function createOverlay(inputs) {
       <span class="aaf-icon">🔐</span>
       <span class="aaf-status">Searching Gmail for code…</span>
       <div class="aaf-actions" hidden></div>
-      <button class="aaf-close" aria-label="Close">✕</button>
+      <button class="aaf-close" data-i18n-label="overlay.close" aria-label="Close">✕</button>
     </div>
   `;
 
@@ -296,7 +309,7 @@ function onOverlayKeydown(event) {
 
 function setOverlaySearching() {
   if (!overlay) return;
-  overlay.querySelector(".aaf-status").textContent = "Searching Gmail for code…";
+  overlay.querySelector(".aaf-status").textContent = T("overlay.searching");
   overlay.querySelector(".aaf-actions").hidden = true;
 }
 
@@ -316,8 +329,8 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
         ? "already tried that code, waiting for a newer one"
         : `nothing yet: ${details.reason ?? "no reason given"}`);
       statusEl.textContent = alreadyTried
-        ? "Waiting for a newer code…"
-        : "Waiting for a new code…";
+        ? T("overlay.waitingNewer")
+        : T("overlay.waitingNew");
       actionsEl.hidden = true;
       setTimeout(requestOTP, POLL_INTERVAL_MS);
       return;
@@ -331,7 +344,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
     if (!otp && !session.acceptedAnyAge) {
       session.acceptedAnyAge = true;
       session.notBefore = 0;
-      statusEl.textContent = "Checking for an older code…";
+      statusEl.textContent = T("overlay.checkingOlder");
       requestOTP();
       return;
     }
@@ -342,7 +355,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
     // Only report failure if nothing was ever entered. After a successful fill
     // this is just the watch expiring, which is not news.
     if (attemptedCodes.size === 0) {
-      statusEl.textContent = "No recent code found in Gmail.";
+      statusEl.textContent = T("overlay.noCode");
       actionsEl.hidden = true;
       setTimeout(removeOverlay, 5000);
     } else {
@@ -364,7 +377,7 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
   // The session deliberately stays open. If this code turns out to be the one
   // the site rejects, a newer message may still arrive, and by then the field
   // holds a value so nothing else would start a lookup.
-  const age = ageMins != null ? ` · ${ageMins}m ago` : "";
+  const age = ageMins != null ? " · " + T("overlay.minutesAgo", { n: ageMins }) : "";
   const fromElsewhere = details.matchesSite === false;
 
   // Name the sender when it does not match this site, so it is obvious the code
@@ -381,13 +394,13 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
 
   const fillBtn = document.createElement("button");
   fillBtn.className = "aaf-btn aaf-fill";
-  fillBtn.title = "Fill and submit";
-  fillBtn.textContent = "↵ Fill & submit";
+  fillBtn.title = T("overlay.fillSubmit");
+  fillBtn.textContent = "↵ " + T("overlay.fillSubmit");
   fillBtn.addEventListener("click", () => fillOTP(otp));
 
   const copyBtn = document.createElement("button");
   copyBtn.className = "aaf-btn aaf-copy";
-  copyBtn.title = "Copy to clipboard";
+  copyBtn.title = T("overlay.copyTitle");
   copyBtn.textContent = "📋";
   copyBtn.addEventListener("click", () => copyOTP(otp));
 
@@ -471,7 +484,7 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
   // which message a code came from is the point of showing anything at all,
   // and the tick already says it was entered.
   const statusEl = overlay?.querySelector(".aaf-status");
-  if (statusEl) statusEl.textContent = codeSource ? `✅ ${codeSource}` : "✅ Filled";
+  if (statusEl) statusEl.textContent = "✅ " + (codeSource || T("overlay.filled"));
 
   const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
 
@@ -482,9 +495,8 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
     // when the code expires in a few minutes.
     trace(submitted ? "submit clicked" : "no enabled submit button found");
     if (!submitted && statusEl) {
-      statusEl.textContent = codeSource
-        ? `✅ ${codeSource} · submit manually`
-        : "✅ Filled, submit manually";
+      statusEl.textContent =
+        "✅ " + (codeSource || T("overlay.filled")) + " · " + T("overlay.submitManually");
     }
   }
 
@@ -616,7 +628,7 @@ async function requestOTP() {
       if (session.missCount >= 2) {
         trace("code field gone, sign-in looks complete");
         const statusEl = overlay.querySelector(".aaf-status");
-        if (statusEl) statusEl.textContent = "✅ Done";
+        if (statusEl) statusEl.textContent = "✅ " + T("overlay.done");
         session = null;
         setTimeout(removeOverlay, 1200);
         return;
@@ -748,6 +760,13 @@ function frameCouldHoldCodeField() {
 }
 
 if (frameCouldHoldCodeField()) {
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  init();
+  // Settle the language first. Detection does not depend on it, but the overlay
+  // does, and reading the setting takes a moment. Starting without it would show
+  // the first status line in English and correct it a tick later.
+  const start = () => {
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    init();
+  };
+  if (globalThis.AAF_I18N) globalThis.AAF_I18N.init().then(start, start);
+  else start();
 }

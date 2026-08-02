@@ -20,6 +20,7 @@ FILES=(
   manifest.json
   config.js
   vocabulary.js
+  i18n.js
   background.js
   content.js
   options.html

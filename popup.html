@@ -138,15 +138,15 @@
 </head>
 <body>
   <header>
-    <span class="logo">🔐</span>
-    <h1>Auto Auth Filler</h1>
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+    <h1 data-i18n="popup.title">Auto Auth Filler</h1>
     <div id="spinner"></div>
   </header>
 
   <!-- Auth state -->
   <div class="status-row">
     <div class="dot" id="auth-dot"></div>
-    <span id="auth-status">Checking…</span>
+    <span id="auth-status" data-i18n="popup.checking">Checking…</span>
   </div>
 
   <!-- OTP result (shown after fetch) -->
@@ -164,20 +164,21 @@
 
   <!-- Primary actions -->
   <div class="btn-row" id="actions-authed" hidden>
-    <button id="btn-fetch">Fetch code</button>
-    <button id="btn-copy" hidden>📋 Copy</button>
+    <button id="btn-fetch" data-i18n="popup.fetch">Fetch code</button>
+    <button id="btn-copy" hidden data-i18n="popup.copy">Copy</button>
   </div>
 
   <div class="btn-row" id="actions-unauthed" hidden>
-    <button id="btn-login">Sign in with Google</button>
+    <button id="btn-login" data-i18n="popup.signIn">Sign in with Google</button>
   </div>
 
   <!-- Footer actions -->
   <footer>
-    <button id="btn-options">⚙ Settings</button>
-    <button id="btn-logout" hidden>Sign out</button>
+    <button id="btn-options" data-i18n="popup.settings">Settings</button>
+    <button id="btn-logout" hidden data-i18n="popup.signOut">Sign out</button>
   </footer>
 
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
