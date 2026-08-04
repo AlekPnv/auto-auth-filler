@@ -89,7 +89,7 @@
 
   <header>
     <h1>Privacy Policy</h1>
-    <p class="meta" style="margin-top:.5rem">Auto Auth Filler, last updated 31 July 2026</p>
+    <p class="meta" style="margin-top:.5rem">Auto Auth Filler, last updated 2 August 2026</p>
     <p class="lede" style="margin-top:1rem">
       Everything happens inside your browser. There is no server, no account, no
       analytics. Nothing is sent anywhere except directly to Google's own API
@@ -98,17 +98,27 @@
   </header>
 
   <section>
-    <h2>What the extension accesses</h2>
+    <h2>What Google user data the extension accesses</h2>
     <p>
-      <strong>Gmail messages, read-only.</strong> The extension requests a single
-      Google permission, <code>https://www.googleapis.com/auth/gmail.readonly</code>.
-      It searches your ten most recent messages from the last day that look like
-      verification emails, and reads them only to locate a code.
+      Auto Auth Filler requests one Google OAuth scope and no others:
+      <code>https://www.googleapis.com/auth/gmail.readonly</code>.
+    </p>
+    <ul>
+      <li><strong>Google user data accessed:</strong> the sender, subject, date and body text of your ten most recent Gmail messages from the last day.</li>
+      <li><strong>Why:</strong> to locate a verification code, and to check that it was sent by the site you are signing in to.</li>
+      <li><strong>Retention:</strong> none. Message content is held in memory only while the patterns run over it, then discarded.</li>
+    </ul>
+    <p>
+      <strong>Google user data the extension does not access:</strong>
+      attachments, contacts, drafts, labels, mail older than one day, any other
+      Google service, and your Google profile or account details. No scope
+      granting those is requested, so the access is refused by Google rather than
+      merely declined by this extension.
     </p>
     <p>
-      It <span class="ok">cannot</span> send, delete, modify or label mail. That
-      is enforced by Google, not merely by this extension's own code. The
-      permission granted does not allow it.
+      The scope is read-only, so the extension <span class="ok">cannot</span>
+      send, delete, modify or label mail. That restriction is enforced by Google
+      rather than by this extension's own code.
     </p>
     <p>
       <strong>Page content on sites you visit.</strong> To recognise a
@@ -173,6 +183,62 @@
       analytics, no telemetry, no crash reporting, no advertising and no
       third-party service of any kind receives your data.
     </p>
+  </section>
+
+  <section>
+    <h2>How Google user data is shared, transferred or disclosed</h2>
+    <p>
+      <strong>It is not.</strong> Auto Auth Filler does not share, transfer, sell,
+      rent, trade or otherwise disclose Google user data to any party, under any
+      circumstance. There is no recipient to name, because there is nobody to name
+      it to:
+    </p>
+    <ul>
+      <li><strong>No third parties.</strong> No analytics provider, advertising network, data broker, crash reporter, error tracker or content delivery network receives any of it.</li>
+      <li><strong>No developer.</strong> The author of this extension cannot read your mail. There is no server, no database and no logging endpoint, so there is nowhere for the data to arrive even in principle.</li>
+      <li><strong>No AI or machine learning.</strong> Google user data is never used to train, fine-tune, evaluate or prompt any model.</li>
+      <li><strong>No human review.</strong> Nobody reads your messages. The only thing that touches them is a set of regular expressions running locally in your browser.</li>
+    </ul>
+    <p>
+      The only network destination that ever receives anything is Google itself,
+      and only to fetch your own mail on your behalf. Google user data is never
+      transferred out of your browser, to another device, another account or
+      another application.
+    </p>
+  </section>
+
+  <section>
+    <h2>How Google user data is protected</h2>
+    <div class="card">
+      <p>
+        <strong>In transit.</strong> Every request to Google is made over HTTPS
+        with TLS. The extension declares only the three Google hosts listed above
+        and cannot reach any other origin, so there is no path by which data could
+        be sent elsewhere.
+      </p>
+      <p style="margin-top:.8rem">
+        <strong>At rest.</strong> Message content is never written to disk, so
+        there is no file to protect. Storage is limited to two OAuth tokens, your
+        settings and short code fingerprints.
+      </p>
+      <p style="margin-top:.8rem">
+        <strong>Where the tokens live.</strong> Browser extension storage is
+        isolated by the browser: websites you visit cannot read it, and neither
+        can other extensions. The short-lived access token is destroyed when the
+        browser closes. The refresh token is deleted, and revoked with Google, the
+        moment you press Sign out.
+      </p>
+      <p style="margin-top:.8rem">
+        <strong>The sign-in flow.</strong> Authorization uses OAuth 2.0 with PKCE
+        and SHA-256. An intercepted authorization code cannot be exchanged for a
+        token without the verifier, which never leaves the extension.
+      </p>
+      <p style="margin-top:.8rem">
+        <strong>Attack surface.</strong> With no developer-operated server there is
+        no database to breach, no backup to leak and no employee with access. The
+        data never exists outside your own browser.
+      </p>
+    </div>
   </section>
 
   <section>
