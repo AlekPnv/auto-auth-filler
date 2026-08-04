@@ -1,11 +1,38 @@
 # Auto Auth Filler
 
+[![Tests](https://github.com/AlekPnv/auto-auth-filler/actions/workflows/test.yml/badge.svg)](https://github.com/AlekPnv/auto-auth-filler/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/AlekPnv/auto-auth-filler)](https://github.com/AlekPnv/auto-auth-filler/releases)
+[![Licence](https://img.shields.io/github/license/AlekPnv/auto-auth-filler)](LICENSE)
+[![Manifest V3](https://img.shields.io/badge/manifest-v3-blue)](manifest.json)
+
 Auto Auth Filler is a browser extension that finds the verification code in your
 latest Gmail message and enters it into the one-time-code field on whatever page
 you are using. You sign in with your Google account once, and after that it works
 on every site with no per-site setup.
 
 **[Watch it work (115 seconds)](https://youtu.be/S_3jNeLl1Iw)**
+
+![A verification code filled into a Battle.net login form, with the overlay naming the email it came from](docs/screenshots/code-filled.png)
+
+## Contents
+
+- [Why it exists](#why-it-exists)
+- [Features](#features)
+- [Browser support](#browser-support)
+- [How it works](#how-it-works)
+- [Installing](#installing)
+- [Installing from source](#installing-from-source)
+- [Setting up your own Google OAuth credentials](#setting-up-your-own-google-oauth-credentials)
+- [First run](#first-run)
+- [Settings](#settings)
+- [Privacy and permissions](#privacy-and-permissions)
+- [Tests](#tests)
+- [Adding a language](#adding-a-language)
+- [Building a release package](#building-a-release-package)
+- [Project structure](#project-structure)
+- [Screenshots](#screenshots)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Why it exists
 
@@ -276,10 +303,8 @@ without it, so make sure it holds your own credentials before uploading anything
 
 ## Screenshots
 
-A code arriving and being entered, with the overlay naming the email it came
-from and how long ago it was sent:
-
-![A verification code filled into a Battle.net login form, with the overlay naming the email it came from](docs/screenshots/code-filled.png)
+The shot at the top of this page is a code arriving and being entered, with the
+overlay naming the email it came from and how long ago it was sent.
 
 While the mail is still in flight the overlay waits, rather than reporting
 failure on a code that simply has not arrived yet:
