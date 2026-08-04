@@ -279,20 +279,20 @@ without it, so make sure it holds your own credentials before uploading anything
 A code arriving and being entered, with the overlay naming the email it came
 from and how long ago it was sent:
 
-![The code entered into a login form, with the overlay showing which email it came from](docs/screenshots/overlay-filled.png)
+![A verification code filled into a Battle.net login form, with the overlay naming the email it came from](docs/screenshots/code-filled.png)
 
-While the mail is still in flight, the overlay waits rather than reporting
-failure:
+While the mail is still in flight the overlay waits, rather than reporting
+failure on a code that simply has not arrived yet:
 
-![The overlay waiting for a code that has not arrived yet](docs/screenshots/overlay-waiting.png)
+![The same login form with empty code boxes and the overlay waiting for a new code](docs/screenshots/searching.png)
 
-The toolbar popup before signing in:
+The toolbar popup, once signed in:
 
-![The toolbar popup, not signed in](docs/screenshots/popup.png)
+![The toolbar popup showing Signed in to Gmail, with a Fetch code button](docs/screenshots/popup.png)
 
 The settings page:
 
-![The settings page](docs/screenshots/settings.png)
+![The settings page, showing the behaviour, detection, account and troubleshooting sections](docs/screenshots/settings.png)
 
 ## Contributing
 
