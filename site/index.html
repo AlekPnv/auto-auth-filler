@@ -80,6 +80,15 @@
   a:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
   code{font-family:var(--mono);font-size:.88em;background:var(--surf0);overflow-wrap:anywhere;
        padding:.12em .4em;border-radius:5px}
+  .stores{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.4rem}
+  .store{display:flex;align-items:center;gap:.7rem;flex:1 1 15rem;
+    padding:.8rem 1rem;border:1px solid var(--surf0);border-radius:12px;
+    background:var(--mantle);color:var(--text);text-decoration:none}
+  .store:hover{border-color:var(--blue)}
+  .store:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .store svg{flex-shrink:0;color:var(--blue)}
+  .store strong{display:block;font-size:.95rem;line-height:1.25}
+  .store small{color:var(--subtext);font-size:.8rem}
   .card{background:var(--mantle);border:1px solid var(--surf0);border-radius:12px;padding:1.3rem 1.5rem}
   .badges{display:flex;flex-wrap:wrap;gap:.5rem}
   .badge{font-family:var(--mono);font-size:.75rem;font-weight:600;padding:.22rem .65rem;
@@ -184,17 +193,27 @@
 
   <section>
     <h2>Installing</h2>
-    <p>
-      <strong>Firefox:</strong>
-      <a href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">Auto Auth Filler on addons.mozilla.org</a>.
-      The listing is awaiting review, so that link will not open until Mozilla
-      approves it.
-    </p>
-    <p>
-      <strong>Chrome, Edge, Brave, Opera and Vivaldi:</strong> submission is in
-      progress.
-    </p>
-    <p>
+    <div class="stores">
+      <a class="store" href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2.2a7.8 7.8 0 0 1 7.55 5.9c-.5-1.3-1.5-2.3-2.8-2.6-1-.3-2 0-2.6.7-.4.4-.9.6-1.4.6-1.5 0-2.8 1-3.2 2.4-.3 1 0 2.1.7 2.9a3.6 3.6 0 0 0 5.6-.5 4.6 4.6 0 0 1-6.7 1.2A7.8 7.8 0 0 1 12 4.2z"/>
+        </svg>
+        <span>
+          <strong>Firefox</strong>
+          <small>addons.mozilla.org</small>
+        </span>
+      </a>
+      <a class="store" href="https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" focusable="false">
+          <path d="M12 2a10 10 0 0 1 8.66 5H12a5 5 0 0 0-4.9 4.03L3.5 4.8A10 10 0 0 1 12 2zM2.4 7.3l4.2 7.27A5 5 0 0 0 12 17c.2 0 .4 0 .6-.03L9 22.85A10 10 0 0 1 2.4 7.3zm12.9 1.9h6.35a10 10 0 0 1-7.13 12.6l4.2-7.27a5 5 0 0 0-.63-5.33zM12 8.8a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4z"/>
+        </svg>
+        <span>
+          <strong>Chrome, Edge, Brave, Opera, Vivaldi</strong>
+          <small>Chrome Web Store</small>
+        </span>
+      </a>
+    </div>
+    <p style="margin-top:1rem">
       Installing from a store needs no Google credentials of your own. To run the
       extension from source instead, or against your own Google Cloud project, the
       setup steps are in the repository's

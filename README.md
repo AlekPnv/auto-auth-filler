@@ -1,7 +1,8 @@
 # Auto Auth Filler
 
+[![Firefox Add-on](https://img.shields.io/amo/v/auto-auth-filler?label=firefox&logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/firefox/addon/auto-auth-filler/)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/lblhpbalgfpoaeofgpdielbanocedjia?label=chrome&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia)
 [![Tests](https://github.com/AlekPnv/auto-auth-filler/actions/workflows/test.yml/badge.svg)](https://github.com/AlekPnv/auto-auth-filler/actions/workflows/test.yml)
-[![Release](https://img.shields.io/github/v/release/AlekPnv/auto-auth-filler)](https://github.com/AlekPnv/auto-auth-filler/releases)
 [![Licence](https://img.shields.io/github/license/AlekPnv/auto-auth-filler)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/manifest-v3-blue)](manifest.json)
 
@@ -89,15 +90,17 @@ discarded.
 
 ## Installing
 
-**Firefox:** [Auto Auth Filler on addons.mozilla.org](https://addons.mozilla.org/firefox/addon/auto-auth-filler/)
+| Browser | |
+| --- | --- |
+| Firefox | [Install from addons.mozilla.org](https://addons.mozilla.org/firefox/addon/auto-auth-filler/) |
+| Chrome, Edge, Brave, Opera, Vivaldi | [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia) |
 
-The listing is awaiting review, so that link returns a 404 until Mozilla
-approves it. Nothing else needs to change once it does.
-
-**Chrome, Edge and the other Chromium browsers:** submission is in progress.
-
-Installing from the store needs no Google credentials of your own. The published
+Installing from a store needs no Google credentials of your own. The published
 package carries its own, so you sign in and it works.
+
+Chromium browsers other than Chrome install the same package from the Chrome
+Web Store. Edge users may need to allow extensions from other stores, which Edge
+offers on first visit.
 
 ## Installing from source
 
