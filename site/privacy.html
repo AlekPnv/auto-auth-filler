@@ -242,6 +242,46 @@
   </section>
 
   <section>
+    <h2>How long Google user data is retained, and how it is deleted</h2>
+    <p>
+      <strong>Google user data is retained for no longer than it takes to read a
+      code out of a message, and is never written to disk.</strong> A message body
+      exists only in the browser's memory while the code patterns run over it, a
+      matter of milliseconds, and is discarded immediately afterwards. Nothing is
+      archived, cached, backed up or logged, so there is no copy to delete later.
+    </p>
+    <p>Everything the extension does keep is listed here in full:</p>
+    <table>
+      <thead>
+        <tr><th>What is kept</th><th>Retained for</th><th>Deleted</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Gmail message content</td><td>Not retained at all, memory only during processing</td><td>Automatically, as soon as the code is extracted</td></tr>
+        <tr><td>Access token</td><td>Until the browser closes</td><td>Automatically on browser close, or on Sign out</td></tr>
+        <tr><td>Refresh token</td><td>Until you sign out or uninstall</td><td>On Sign out, which also revokes it with Google, or on uninstall</td></tr>
+        <tr><td>Your settings</td><td>Until you uninstall</td><td>On uninstall</td></tr>
+        <tr><td>Fingerprints of codes already tried</td><td>Ten minutes</td><td>Automatically after ten minutes, or on uninstall</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:1rem">
+      <strong>How to delete everything yourself.</strong> Any one of these removes
+      all Google user data the extension holds, immediately and without contacting
+      anyone:
+    </p>
+    <ul>
+      <li>Press <strong>Sign out</strong> in the extension. Both tokens are deleted and the grant is revoked with Google.</li>
+      <li>Uninstall the extension. The browser discards its entire storage area.</li>
+      <li>Revoke access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>, which invalidates the tokens whether or not the extension is still installed.</li>
+    </ul>
+    <p>
+      <strong>There is no deletion request to make.</strong> Because no data ever
+      reaches a server, the developer holds nothing to delete on your behalf and
+      could not retrieve your data even if asked. Deletion is entirely in your
+      hands and takes effect at once.
+    </p>
+  </section>
+
+  <section>
     <h2>Limited Use disclosure</h2>
     <div class="card">
       <p>

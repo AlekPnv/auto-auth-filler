@@ -137,6 +137,39 @@ out** or at
 [myaccount.google.com/permissions](https://myaccount.google.com/permissions),
 without needing to contact anyone.
 
+## How long Google user data is retained, and how it is deleted
+
+**Google user data is retained for no longer than it takes to read a code out of
+a message, and is never written to disk.** A message body exists only in the
+browser's memory while the code patterns run over it, a matter of milliseconds,
+and is discarded immediately afterwards. Nothing is archived, cached, backed up
+or logged, so there is no copy to delete later.
+
+Everything the extension does keep is listed here in full, with its retention
+period and how it is deleted:
+
+| What is kept | Retained for | Deleted |
+| --- | --- | --- |
+| Gmail message content | Not retained at all, memory only during processing | Automatically, as soon as the code is extracted |
+| Access token | Until the browser closes | Automatically on browser close, or on **Sign out** |
+| Refresh token | Until you sign out or uninstall | On **Sign out**, which also revokes it with Google, or on uninstall |
+| Your settings | Until you uninstall | On uninstall |
+| Fingerprints of codes already tried | Ten minutes | Automatically after ten minutes, or on uninstall |
+
+**How to delete everything yourself.** Any one of these removes all Google user
+data the extension holds, immediately and without contacting anyone:
+
+- Press **Sign out** in the extension. Both tokens are deleted and the grant is
+  revoked with Google.
+- Uninstall the extension. The browser discards its entire storage area.
+- Revoke access at
+  [myaccount.google.com/permissions](https://myaccount.google.com/permissions),
+  which invalidates the tokens whether or not the extension is still installed.
+
+**There is no deletion request to make.** Because no data ever reaches a server,
+the developer holds nothing to delete on your behalf and could not retrieve your
+data even if asked. Deletion is entirely in your hands and takes effect at once.
+
 ## Limited Use disclosure
 
 Auto Auth Filler's use and transfer of information received from Google APIs
