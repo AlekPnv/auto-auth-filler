@@ -294,6 +294,12 @@ function createOverlay(inputs) {
   `;
 
   document.documentElement.appendChild(overlay);
+
+  // The overlay markup carries data-i18n attributes, and nothing translates
+  // them unless apply() is run over it. Without this the close button keeps its
+  // English aria-label whatever language the interface is set to.
+  if (globalThis.AAF_I18N) globalThis.AAF_I18N.apply(overlay);
+
   overlay.querySelector(".aaf-close").addEventListener("click", removeOverlay);
 
   // Escape dismisses it, the same as anything else that appears over a page.

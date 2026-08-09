@@ -185,3 +185,30 @@ test("switching language re-renders the same element differently", () => {
   i.apply(root);
   assert.strictEqual(el.textContent, "Speichern");
 });
+
+test("markup that asks to be translated is actually translated", () => {
+  // content.js builds its overlay from a template string, so a data-i18n
+  // attribute there is inert unless apply() is run over the element. That
+  // failure is silent: the attribute sits in the DOM and the text stays
+  // English. This checks the two go together.
+  const src = fs.readFileSync(path.join(ROOT, "content.js"), "utf8");
+  const hasAttributes = /data-i18n(?:-title|-label)?=/.test(src);
+  const callsApply = /AAF_I18N\.apply\(/.test(src);
+
+  assert.strictEqual(
+    hasAttributes && !callsApply,
+    false,
+    "content.js has data-i18n attributes but never calls AAF_I18N.apply()",
+  );
+});
+
+test("keys used in the overlay markup exist in the table", () => {
+  // The earlier reference check reads the two HTML files. The overlay lives
+  // inside content.js instead, so its keys need scanning separately or a typo
+  // there ships unnoticed.
+  const src = fs.readFileSync(path.join(ROOT, "content.js"), "utf8");
+  const used = [...src.matchAll(/data-i18n(?:-title|-label)?="([^"]+)"/g)].map((m) => m[1]);
+  assert.ok(used.length > 0, "expected at least one translated attribute in the overlay");
+  const unknown = used.filter((k) => !KEYS.includes(k));
+  assert.deepStrictEqual(unknown, [], `overlay references undefined keys: ${unknown.join(", ")}`);
+});

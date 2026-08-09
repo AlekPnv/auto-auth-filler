@@ -5,6 +5,14 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.1] - 2026-08-02
+
+### Fixed
+
+- **The overlay's close button kept its English label in German.** The button carries a `data-i18n-label` attribute, but nothing translated it: `content.js` called `AAF_I18N.init()` to settle the language and never `apply()` to act on it, so the attribute sat in the DOM doing nothing. Screen reader users on a German interface heard "Close". The overlay is translated when it is built now.
+
+  Two tests were added, because nothing existing could have caught this. One fails if `content.js` carries translation attributes without calling `apply()`, the other checks that keys used in the overlay markup exist in the table. The first was verified by reintroducing the bug and watching it fail, rather than trusting that it would.
+
 ## [3.10.0] - 2026-08-02
 
 ### Added
