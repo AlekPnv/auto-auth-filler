@@ -5,6 +5,18 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.2] - 2026-08-09
+
+### Fixed
+
+- **On some split-digit widgets the code was entered more than once, and could end up scrambled.** Reported on g2g.com: characters were duplicated, and sometimes part of an existing code was replaced with a fragment of another. Three changes, in order of how sure I am about each:
+
+  `fillOTP` had no re-entry guard. It is asynchronous and awaits storage twice and the submit button once, and anything that called it during those awaits started a second fill into the same boxes. Two fills interleaving on a six-box widget produce one scrambled code rather than two clean attempts. A fill now refuses to start while another is running.
+
+  After the last box is written, the field is read back once it has settled and rewritten if it does not hold the code. A widget that redistributes or clears what it was handed is corrected once. This is the part that guarantees a final value whatever the site does, and it is the change most likely to be what actually fixes this.
+
+  Boxes are written one at a time with a short gap rather than in a single burst, which gives a framework-driven widget room to flush its own state between characters. This is precautionary: no stub could be built that fails under the old code and passes under the new one, so it is mitigation rather than a proven fix.
+
 ## [3.10.1] - 2026-08-02
 
 ### Fixed

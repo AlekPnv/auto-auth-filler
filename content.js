@@ -102,6 +102,19 @@ const SEARCH_TIMEOUT_MS = 20000;
 const SUBMIT_WAIT_MS = 2500;
 const SUBMIT_POLL_MS = 150;
 
+// Split-digit widgets react to each character as the site's own handler runs,
+// which happens synchronously inside dispatchEvent. Most of them advance focus
+// and redistribute the value across the remaining boxes, clearing the ones after
+// the box they just handled. Writing every box in one tight loop therefore races
+// that handler: box 0's code clears boxes 1 to 5, the loop writes box 1, its
+// handler clears 2 to 5, and the result is a code with pieces missing or moved.
+// A gap between writes lets each handler finish before the next character lands.
+const BOX_WRITE_GAP_MS = 60;
+
+// After the last box, the widget may still redistribute what it was given. Read
+// the field back once it has settled and correct it if it does not match.
+const FILL_SETTLE_MS = 400;
+
 // Firefox implements the chrome namespace with callbacks, so calling these
 // without one returns undefined rather than a promise. Chrome accepts callbacks
 // too, so wrapping them gives one code path that is correct in both engines.
@@ -448,7 +461,40 @@ function truncate(str, max) {
   return str.length <= max ? str : str.slice(0, max - 1) + "…";
 }
 
+// True while a fill is in progress. fillOTP awaits storage and the submit
+// button, and during those awaits anything that calls it again starts a second
+// fill into the same boxes. On a split-digit widget two interleaved fills
+// produce a scrambled code rather than two clean attempts.
+let fillInProgress = false;
+
+// Writes the code, one box at a time, leaving the site's own handler room to run
+// between characters. Returns once every character is in.
+async function writeCode(inputs, otp) {
+  if (inputs.length === 1) {
+    setNativeValue(inputs[0], otp);
+    return;
+  }
+
+  for (let i = 0; i < inputs.length; i++) {
+    if (otp[i] === undefined) break;
+    setNativeValue(inputs[i], otp[i]);
+    // Not after the last one: nothing follows it to race against.
+    if (i < inputs.length - 1 && otp[i + 1] !== undefined) await delay(BOX_WRITE_GAP_MS);
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fillOTP(otp, knownInputs, attempt = 0) {
+  // A retry is the same fill continuing, so it must not be turned away by the
+  // guard its own first pass set.
+  if (fillInProgress && attempt === 0) {
+    trace("fill already in progress, ignoring a second request");
+    return;
+  }
+
   const inputs = knownInputs ?? findOTPInputs();
 
   // A form that has just rejected a code often disables or hides its boxes for
@@ -465,59 +511,72 @@ async function fillOTP(otp, knownInputs, attempt = 0) {
     return;
   }
 
-  // Record it before entering it, and durably: the submit may navigate, which
-  // destroys this script, and the replacement needs to know this code was tried.
-  await rememberAttempt(otp);
+  fillInProgress = true;
+  try {
+    // Record it before entering it, and durably: the submit may navigate, which
+    // destroys this script, and the replacement needs to know this code was tried.
+    await rememberAttempt(otp);
 
-  // Marks the point after which the field vanishing means the code worked.
-  if (session) session.filled = true;
+    // Marks the point after which the field vanishing means the code worked.
+    if (session) session.filled = true;
 
-  if (inputs.length === 1) {
-    setNativeValue(inputs[0], otp);
-  } else {
-    // split-digit: one character per box
-    inputs.forEach((input, i) => {
-      if (otp[i] !== undefined) setNativeValue(input, otp[i]);
-    });
-  }
+    await writeCode(inputs, otp);
 
-  // The code itself is deliberately not logged. Which step ran is what makes
-  // the trace useful; the value is a live credential and belongs nowhere near
-  // the console of an arbitrary page.
-  trace(`filling a ${otp.length} character code`);
-
-  // Keep naming the email rather than replacing it with "Filled". Knowing
-  // which message a code came from is the point of showing anything at all,
-  // and the tick already says it was entered.
-  const statusEl = overlay?.querySelector(".aaf-status");
-  if (statusEl) statusEl.textContent = "✅ " + (codeSource || T("overlay.filled"));
-
-  const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
-
-  if (autoSubmit !== false) {
-    const submitted = await clickSubmitWhenReady(inputs[0]);
-    // Say so when the form was left for the user. Silence here is
-    // indistinguishable from a submit that worked, and the difference matters
-    // when the code expires in a few minutes.
-    trace(submitted ? "submit clicked" : "no enabled submit button found");
-    if (!submitted && statusEl) {
-      statusEl.textContent =
-        "✅ " + (codeSource || T("overlay.filled")) + " · " + T("overlay.submitManually");
+    // The widget may still be redistributing what it was handed. Let it settle,
+    // then check what actually ended up in the boxes. One correction pass only:
+    // if a second write does not take either, the site is fighting the fill and
+    // repeating would just scramble it further.
+    if (inputs.length > 1) {
+      await delay(FILL_SETTLE_MS);
+      const live = findOTPInputs() ?? inputs;
+      if (live.length > 0 && currentFieldValue(live) !== otp) {
+        trace("the field did not keep the code, correcting once");
+        await writeCode(live, otp);
+      }
     }
-  }
 
-  // Keep watching rather than closing. A rejected code leaves the field holding
-  // a value, and a filled field stops any new lookup from starting, so without
-  // this the user has to clear the box by hand before anything happens again.
-  // When a newer code arrives it simply replaces what is there.
-  if (session && Date.now() < session.deadline) {
-    trace("watching for a newer code");
-    if (statusEl) statusEl.textContent += " · watching";
-    setTimeout(requestOTP, POLL_INTERVAL_MS);
-    return;
-  }
+    // The code itself is deliberately not logged. Which step ran is what makes
+    // the trace useful; the value is a live credential and belongs nowhere near
+    // the console of an arbitrary page.
+    trace(`filling a ${otp.length} character code`);
 
-  setTimeout(removeOverlay, 1500);
+    // Keep naming the email rather than replacing it with "Filled". Knowing
+    // which message a code came from is the point of showing anything at all,
+    // and the tick already says it was entered.
+    const statusEl = overlay?.querySelector(".aaf-status");
+    if (statusEl) statusEl.textContent = "✅ " + (codeSource || T("overlay.filled"));
+
+    const { autoSubmit } = (await storageGet("autoSubmit")) ?? {};
+
+    if (autoSubmit !== false) {
+      const submitted = await clickSubmitWhenReady(inputs[0]);
+      // Say so when the form was left for the user. Silence here is
+      // indistinguishable from a submit that worked, and the difference matters
+      // when the code expires in a few minutes.
+      trace(submitted ? "submit clicked" : "no enabled submit button found");
+      if (!submitted && statusEl) {
+        statusEl.textContent =
+          "✅ " + (codeSource || T("overlay.filled")) + " · " + T("overlay.submitManually");
+      }
+    }
+
+    // Keep watching rather than closing. A rejected code leaves the field holding
+    // a value, and a filled field stops any new lookup from starting, so without
+    // this the user has to clear the box by hand before anything happens again.
+    // When a newer code arrives it simply replaces what is there.
+    if (session && Date.now() < session.deadline) {
+      trace("watching for a newer code");
+      if (statusEl) statusEl.textContent += " · watching";
+      setTimeout(requestOTP, POLL_INTERVAL_MS);
+      return;
+    }
+
+    setTimeout(removeOverlay, 1500);
+  } finally {
+    // Released whichever way this returned, including the early return above.
+    // Leaving it set would block every later fill on the page.
+    fillInProgress = false;
+  }
 }
 
 // Waits for a usable submit button rather than clicking once and hoping. The

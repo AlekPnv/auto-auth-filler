@@ -30,6 +30,10 @@ function loadContentScript() {
     window: { location: { hostname: "example.com" } },
     MutationObserver: class { observe() {} disconnect() {} },
     HTMLInputElement: { prototype: {} },
+    // setNativeValue constructs these to notify the page. The stubs only need to
+    // exist; the fake inputs ignore what they are handed.
+    Event: class { constructor(type, init) { this.type = type; Object.assign(this, init); } },
+    KeyboardEvent: class { constructor(type, init) { this.type = type; Object.assign(this, init); } },
     navigator: { clipboard: { writeText: () => Promise.resolve() } },
     chrome: {
       // A real store, so the record of tried codes can be exercised. It has to
@@ -441,4 +445,87 @@ test("the watch stops once the code field is gone", () => {
   // Finding the field again clears the count.
   cs.call("session.missCount = 0");
   assert.strictEqual(cs.call("session.missCount >= 2"), false);
+});
+
+// A widget that scrambles what it is given: on any input it keeps only the last
+// character written and blanks the rest, which is the shape of what G2G does.
+// Nothing about write order rescues this, so it exists to prove the correction
+// pass, which is the only part of the fix that guarantees a final value.
+function scramblingBoxes(count) {
+  const boxes = [];
+  let settled = false;
+  for (let i = 0; i < count; i++) {
+    boxes.push({
+      value: "",
+      focus() {},
+      dispatchEvent() {
+        if (settled) return true;
+        for (let j = 0; j < boxes.length; j++) if (j !== i) boxes[j].value = "";
+        return true;
+      },
+    });
+  }
+  // The second pass succeeds, as it does on a real page once the widget has
+  // finished whatever it was doing.
+  boxes.stopScrambling = () => { settled = true; };
+  return boxes;
+}
+
+function plainBoxes(count) {
+  return Array.from({ length: count }, () => ({
+    value: "", focus() {}, dispatchEvent() { return true; },
+  }));
+}
+
+test("writeCode fills every box of a split-digit field", async () => {
+  const cs = loadContentScript();
+  const boxes = plainBoxes(6);
+  await cs.call("writeCode")(boxes, "FTW8S7");
+  assert.strictEqual(boxes.map((b) => b.value).join(""), "FTW8S7");
+});
+
+test("writeCode leaves boxes beyond the code untouched", async () => {
+  const cs = loadContentScript();
+  const boxes = plainBoxes(6);
+  boxes[5].value = "x";
+  await cs.call("writeCode")(boxes, "1234");
+  assert.strictEqual(boxes.slice(0, 4).map((b) => b.value).join(""), "1234");
+  assert.strictEqual(boxes[5].value, "x", "a box past the end of the code was cleared");
+});
+
+test("writeCode leaves a gap between boxes rather than writing them in one burst", async () => {
+  // The gap is what gives a framework-driven widget room to flush its own state
+  // between characters. Asserting the elapsed time is the only honest way to
+  // show the behaviour exists, since a stub cannot model another site's
+  // rendering.
+  const cs = loadContentScript();
+  const started = Date.now();
+  await cs.call("writeCode")(plainBoxes(6), "123456");
+  const elapsed = Date.now() - started;
+  assert.ok(elapsed >= 250, `expected the writes to be spread out, took ${elapsed}ms`);
+});
+
+test("a single field is written in one go, with no delay", async () => {
+  const cs = loadContentScript();
+  const one = plainBoxes(1);
+  const started = Date.now();
+  await cs.call("writeCode")(one, "123456");
+  assert.strictEqual(one[0].value, "123456");
+  assert.ok(Date.now() - started < 50, "a single field should not be staggered");
+});
+
+test("a scrambling widget is corrected on the second pass", async () => {
+  const cs = loadContentScript();
+  const boxes = scramblingBoxes(6);
+
+  await cs.call("writeCode")(boxes, "FTW8S7");
+  assert.notStrictEqual(
+    boxes.map((b) => b.value).join(""),
+    "FTW8S7",
+    "the stub was meant to scramble the first pass",
+  );
+
+  boxes.stopScrambling();
+  await cs.call("writeCode")(boxes, "FTW8S7");
+  assert.strictEqual(boxes.map((b) => b.value).join(""), "FTW8S7");
 });
