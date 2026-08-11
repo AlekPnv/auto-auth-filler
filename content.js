@@ -178,9 +178,14 @@ const {
   formStrong: FORM_STRONG,
   formWeak: FORM_WEAK,
   paymentContext: PAYMENT_CONTEXT,
+  cardField: CARD_FIELD,
+  cardAmbiguous: CARD_AMBIGUOUS,
   passwordFieldOk: PASSWORD_FIELD_OK,
   submitButtons: SUBMIT_BUTTONS,
 } = globalThis.AAF_TERMS ?? {};
+
+// Any score at or below this is never a candidate, whatever else matched.
+const REFUSED = -100;
 
 // every text label associated with an input, lowercased, as one string
 function labelBag(el) {
@@ -232,6 +237,21 @@ function scoreInput(el) {
 
   const bag = labelBag(el);
 
+  // Card data is refused outright rather than scored down. A verification code
+  // typed into a payment form and submitted is the worst thing this extension
+  // could do, and no amount of other evidence should be able to outvote it.
+  //
+  // The browser's own autocomplete tokens are the most reliable signal, and are
+  // the exact mirror of autocomplete="one-time-code", which findOTPInputs()
+  // accepts without scoring. A genuine 3-D Secure field carrying that token is
+  // therefore never reached by this function at all, which is what keeps a bank
+  // challenge working while a CVV beside it is refused.
+  const autocomplete = (el.getAttribute?.("autocomplete") ?? "").toLowerCase();
+  if (/\bcc-(?:csc|number|exp|exp-month|exp-year|name|type|given-name|family-name)\b/.test(autocomplete)) {
+    return REFUSED;
+  }
+  if (CARD_FIELD?.test(bag)) return REFUSED;
+
   if (NAME_STRONG.test(bag)) score += 35;
   else if (NAME_MEDIUM.test(bag)) score += 25;
   else if (NAME_WEAK.test(bag)) score += 10;
@@ -249,13 +269,21 @@ function scoreInput(el) {
     if (FORM_STRONG.test(formText)) score += 10;
     else if (FORM_WEAK.test(formText)) score += 5;
 
+    const inPaymentForm = PAYMENT_CONTEXT.test(formText);
+
+    // Words that mean a card's security number on a payment form and a one-time
+    // code anywhere else. German "Sicherheitscode" is both, and fieldStrong
+    // already matches it, so on a checkout page a CVV box scored 35 and was
+    // filled. The surrounding form is the only thing that separates the two.
+    if (inPaymentForm && CARD_AMBIGUOUS?.test(bag)) return REFUSED;
+
     // Demote card-PIN fields: they match "pin" but never hold an emailed code.
     // Only applies when "pin" was the field's sole reason for scoring.
     const scoredOnlyOnPin =
       !NAME_STRONG.test(bag) &&
       /\bpin\b/.test(bag) &&
       !/\b(code|verify|token|auth)\b|code\b/.test(bag);
-    if (scoredOnlyOnPin && PAYMENT_CONTEXT.test(formText)) score -= 30;
+    if (scoredOnlyOnPin && inPaymentForm) score -= 30;
   }
 
   return score;

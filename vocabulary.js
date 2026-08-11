@@ -58,6 +58,20 @@ globalThis.AAF_VOCAB = {
     // emailed code.
     payment: ["\\b(?:card|payment|iban|cvv|cvc|debit)\\b"],
 
+    // Card data. Never an emailed code, so a field naming any of these is
+    // refused outright rather than scored down. Getting this wrong means typing
+    // a verification code into a payment form and submitting it.
+    cardField: [
+      "\\b(?:cvv|cvc|csc|cvn)\\b",
+      "card[\\s_-]?number", "cardnumber", "card[\\s_-]?verification",
+      "\\bexpir(?:y|ation)\\b", "\\bexp[\\s_-]?date\\b",
+      "name[\\s_-]?on[\\s_-]?card", "cardholder",
+    ],
+
+    // Means the card security number only when the form is about payment.
+    // Elsewhere it is an ordinary way to say "one-time code".
+    cardAmbiguous: ["security[\\s_-]?code"],
+
     // Text on the button that submits a code. Matched as a substring, so
     // spacing variants have to be listed separately: Blizzard's button reads
     // "Log in", which "login" does not match.
@@ -103,7 +117,23 @@ globalThis.AAF_VOCAB = {
 
     passwordFieldOk: ["(?:einmal|bestätigungs|bestaetigungs|verifizierungs)code"],
 
-    payment: ["\\b(?:karten?|kreditkarten?|zahlung)\\b"],
+    // German compounds have no word boundary before the noun, so \b cannot
+    // find "karten" inside "Kartennummer" or "zahl" inside "bezahlen". The
+    // same trap that hid Bestaetigungscode for so long, here hiding a
+    // checkout page from the guard meant to recognise one.
+    payment: ["kreditkarte", "kartennummer", "karteninhaber",
+      "\\bkarten?\\b", "zahlung", "bezahl", "\\bzahlen\\b"],
+
+    cardField: [
+      "karten(?:nummer|pr\u00fcfnummer|pruefnummer|inhaber)",
+      "\\bpr\u00fcfnummer\\b", "\\bpruefnummer\\b",
+      "ablaufdatum", "g\u00fcltig bis", "gueltig bis",
+    ],
+
+    // Sicherheitscode is the collision that caused this: German uses it for a
+    // card's CVV and for a one-time code alike. On a payment form it is the
+    // former, and fieldStrong already matches it, so without this it scores 35.
+    cardAmbiguous: ["sicherheitscode"],
 
     submitButtons: ["weiter", "bestätigen", "anmelden", "fortfahren"],
 
@@ -152,6 +182,8 @@ globalThis.AAF_TERMS = {
   formWeak: aafPattern("formWeak"),
   passwordFieldOk: aafPattern("passwordFieldOk"),
   paymentContext: aafPattern("payment"),
+  cardField: aafPattern("cardField"),
+  cardAmbiguous: aafPattern("cardAmbiguous"),
 
   submitButtons: aafCollect("submitButtons"),
   gmailQuery: aafGmailQuery(),

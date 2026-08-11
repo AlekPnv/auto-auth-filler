@@ -529,3 +529,84 @@ test("a scrambling widget is corrected on the second pass", async () => {
   await cs.call("writeCode")(boxes, "FTW8S7");
   assert.strictEqual(boxes.map((b) => b.value).join(""), "FTW8S7");
 });
+
+// ---------------------------------------------------------------------------
+// Payment forms. Reported on ryanair.com: the overlay opened on a checkout page
+// and treated card fields as somewhere to put an emailed code. Filling one and
+// submitting it is the worst outcome this extension can produce, which is why
+// these return a refusal rather than a low score.
+// ---------------------------------------------------------------------------
+
+const CARD_FORM = "Pay now. Card number, expiry date and security code required. Total EUR 129.";
+
+test("a German CVV box on a payment form is refused", () => {
+  // The reported case. "Sicherheitscode" is German for both a card's security
+  // number and a one-time code, and fieldStrong matches it, so this scored 35
+  // and above the threshold before the form was ever considered.
+  const cs = loadContentScript();
+  const score = cs.scoreInput(input({
+    name: "sicherheitscode", inputMode: "numeric", maxLength: 4,
+    formText: "Jetzt bezahlen. Kartennummer, Ablaufdatum und Sicherheitscode. Gesamt EUR 129.",
+  }));
+  assert.ok(score < THRESHOLD, `a CVV field scored ${score}, it must never be a candidate`);
+});
+
+test("an English security-code box on a payment form is refused", () => {
+  const cs = loadContentScript();
+  const score = cs.scoreInput(input({
+    name: "securityCode", inputMode: "numeric", maxLength: 4, formText: CARD_FORM,
+  }));
+  assert.ok(score < THRESHOLD, `scored ${score}`);
+});
+
+test("the same wording away from a payment form is still a code field", () => {
+  // "Security code" genuinely means a one-time code on plenty of sign-in pages.
+  // The refusal has to depend on the surrounding form, not the word alone.
+  const cs = loadContentScript();
+  const score = cs.scoreInput(input({
+    name: "securityCode", inputMode: "numeric", maxLength: 6,
+    formText: "Enter the security code we emailed you to finish signing in",
+  }));
+  assert.ok(score >= THRESHOLD, `a genuine code field scored ${score}`);
+});
+
+test("card fields are refused whatever the surrounding form says", async (t) => {
+  const cs = loadContentScript();
+  const names = ["cvv", "cvc", "cardNumber", "card-number", "expiry", "cardholder",
+                 "kartennummer", "kartenprüfnummer", "ablaufdatum"];
+  for (const name of names) {
+    await t.test(name, () => {
+      const score = cs.scoreInput(input({
+        name, inputMode: "numeric", maxLength: 6,
+        formText: "Enter the verification code we sent you",
+      }));
+      assert.ok(score < THRESHOLD, `${name} scored ${score}`);
+    });
+  }
+});
+
+test("the browser's own card autocomplete tokens are refused", async (t) => {
+  const cs = loadContentScript();
+  for (const token of ["cc-csc", "cc-number", "cc-exp", "cc-name"]) {
+    await t.test(token, () => {
+      const el = input({
+        name: "code", inputMode: "numeric", maxLength: 6,
+        formText: "Enter the verification code we sent you",
+      });
+      const original = el.getAttribute;
+      el.getAttribute = (k) => (k === "autocomplete" ? token : original(k));
+      assert.ok(cs.scoreInput(el) < THRESHOLD, `${token} was not refused`);
+    });
+  }
+});
+
+test("a 3-D Secure code field on a payment page still works", () => {
+  // The case the refusal must not break: a bank challenge during checkout is a
+  // real emailed code, and one of the more useful things the extension does.
+  const cs = loadContentScript();
+  const score = cs.scoreInput(input({
+    name: "otp", inputMode: "numeric", maxLength: 6,
+    formText: "3-D Secure. Enter the one-time code sent to your phone to authorise this card payment.",
+  }));
+  assert.ok(score >= THRESHOLD, `a 3DS challenge field scored ${score}`);
+});

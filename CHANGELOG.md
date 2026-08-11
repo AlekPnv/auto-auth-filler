@@ -5,6 +5,22 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.3] - 2026-08-09
+
+### Fixed
+
+- **Card fields on a payment page were treated as somewhere to put an emailed code.** Reported on ryanair.com. Typing a verification code into a checkout form and submitting it is the worst thing this extension can do, so card fields are now refused outright rather than scored down.
+
+  The cause was a language collision. German uses `Sicherheitscode` for both a card's security number and a one-time code, and it was already listed as a strong code-field name, so a CVV box scored 35 against a threshold of 28. The existing payment demotion could not help: it only applied to a field that scored on `pin` alone, and a bag containing "code" disqualified it.
+
+  Three signals refuse a field now. The browser's own `autocomplete` tokens (`cc-csc`, `cc-number`, `cc-exp` and the rest), which are the exact mirror of the `autocomplete="one-time-code"` that already bypasses scoring. Unambiguous card words, in both languages. And words that mean a card's security number only on a payment form, `security code` and `Sicherheitscode`, which stay perfectly valid code-field names anywhere else.
+
+  A 3-D Secure challenge during checkout still works, and is covered by a test. That is a real emailed code on a real payment page, and it is one of the more useful things the extension does.
+
+- **The German payment terms never matched a German checkout page.** `\b(?:karten?|zahlung)\b` cannot find "Karten" inside "Kartennummer" or "zahl" inside "bezahlen", so the guard that depends on recognising a payment form was inert in German. This is the same word-boundary trap that hid `Bestaetigungscode` from detection in 3.6.0.
+
+- **A single-backslash escape in a pattern is now caught by a test.** While fixing the above, `"\\bkarten?\\b"` was written as `"\bkarten?\b"`, which JavaScript reads as a backspace character rather than a word boundary. It compiles cleanly and matches nothing, silently disabling whatever it guarded. It cannot be detected after compilation either, because `RegExp.source` renders a literal backspace as `\b`, identical to the real thing. The test therefore reads `vocabulary.js` as text.
+
 ## [3.10.2] - 2026-08-09
 
 ### Fixed
