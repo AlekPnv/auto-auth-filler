@@ -11,7 +11,7 @@ latest Gmail message and enters it into the one-time-code field on whatever page
 you are using. You sign in with your Google account once, and after that it works
 on every site with no per-site setup.
 
-**[Watch it work (115 seconds)](https://youtu.be/S_3jNeLl1Iw)**
+**[autoauthfiller.com](https://autoauthfiller.com)** &middot; **[Watch it work (115 seconds)](https://youtu.be/S_3jNeLl1Iw)** &middot; **[Docs](https://autoauthfiller.com/docs)** &middot; **[FAQ](https://autoauthfiller.com/faq)**
 
 ![A verification code filled into a Battle.net login form, with the overlay naming the email it came from](docs/screenshots/code-filled.png)
 
@@ -32,6 +32,7 @@ on every site with no per-site setup.
 - [Building a release package](#building-a-release-package)
 - [Project structure](#project-structure)
 - [Screenshots](#screenshots)
+- [Website](#website)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -66,9 +67,16 @@ the code from your inbox and fills it in without you leaving the page.
 | Brave, Opera, Vivaldi | Full support, Chromium based |
 | Firefox 140 and newer | Full support |
 | Firefox for Android 142 and newer | Declared, but untested |
+| Safari, iOS, iPadOS | Not supported. See [APPLE.md](APPLE.md) |
 
 Firefox 140 is the floor because that is the first version supporting the
 `data_collection_permissions` manifest key that addons.mozilla.org requires.
+
+Safari has never been built or tested, and cannot be from a Windows machine:
+Safari web extensions require Xcode, which is macOS only. On a Mac the
+extension works in Chrome, Edge, Brave, Opera and Vivaldi. [APPLE.md](APPLE.md)
+records what a port would involve and the one question that has to be answered
+before it is worth starting.
 
 ## How it works
 
@@ -299,7 +307,8 @@ without it, so make sure it holds your own credentials before uploading anything
 ├── package.bat / .sh    Packaging scripts for store submission
 ├── test/                Test suite, run with `node --test`
 ├── icons/               Toolbar and store icons
-├── site/                The public website and privacy policy
+├── site/                The public website: four pages, one stylesheet
+├── APPLE.md             Why Safari is unsupported, and what a port would need
 ├── PRIVACY.md           Privacy policy
 └── CHANGELOG.md         Release history
 ```
@@ -321,6 +330,31 @@ The toolbar popup, once signed in:
 The settings page:
 
 ![The settings page, showing the behaviour, detection, account and troubleshooting sections](docs/screenshots/settings.png)
+
+## Website
+
+The site at [autoauthfiller.com](https://autoauthfiller.com) lives in `site/`
+and deploys to Vercel on every push to `main`. It is four static pages sharing
+one stylesheet, with no build step and no framework:
+
+| Page | Source |
+| --- | --- |
+| [Home](https://autoauthfiller.com/) | `site/index.html` |
+| [Docs](https://autoauthfiller.com/docs) | `site/docs.html` |
+| [FAQ](https://autoauthfiller.com/faq) | `site/faq.html` |
+| [Privacy](https://autoauthfiller.com/privacy) | `site/privacy.html` |
+
+Pages are written by hand rather than generated, which is only safe because
+`test/site.test.js` enforces what a template would otherwise guarantee. It fails
+if a page loses its canonical link, its Open Graph tags, its navigation, its
+skip link or its image alt text, if an internal link or image points at nothing,
+if the sitemap stops matching the set of pages, if the dark palette drifts from
+the light one, or if any page mentions Safari without saying it is unsupported.
+
+That last one exists because the drift already happened once: `privacy.html`
+spent weeks without a canonical link or any Open Graph tags, still carrying the
+padlock emoji favicon that the home page had replaced to pass Google's branding
+check.
 
 ## Contributing
 
