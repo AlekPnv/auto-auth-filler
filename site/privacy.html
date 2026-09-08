@@ -4,99 +4,73 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Privacy Policy: Auto Auth Filler</title>
-<meta name="description" content="Privacy policy for the Auto Auth Filler browser extension, including the Google API Services Limited Use disclosure." />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128274;</text></svg>" />
+<meta name="description" content="What Google user data Auto Auth Filler accesses, how it is shared, how it is protected, and how long it is retained. Includes the Google API Services Limited Use disclosure." />
+<meta name="application-name" content="Auto Auth Filler" />
+<link rel="canonical" href="https://autoauthfiller.com/privacy" />
+<meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Auto Auth Filler" />
+<meta property="og:title" content="Privacy Policy: Auto Auth Filler" />
+<meta property="og:description" content="What Google user data Auto Auth Filler accesses, how it is shared, how it is protected, and how long it is retained." />
+<meta property="og:url" content="https://autoauthfiller.com/privacy" />
+<meta property="og:image" content="https://autoauthfiller.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="A verification code being filled into a login form automatically." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Privacy Policy: Auto Auth Filler" />
+<meta name="twitter:description" content="What Google user data Auto Auth Filler accesses, how it is shared, how it is protected, and how long it is retained." />
+<meta name="twitter:image" content="https://autoauthfiller.com/og-image.png" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389b4fa' stroke-width='2' stroke-linecap='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>" />
+<link rel="stylesheet" href="/style.css" />
+<script src="/theme.js" defer></script>
 <script>
-  // Before first paint: a stored choice must win over the system preference,
-  // otherwise the page renders in the wrong theme and then corrects itself.
   try {
     var t = localStorage.getItem("theme");
     if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
   } catch (e) { /* private mode blocks storage; the system preference still works */ }
 </script>
-<style>
-  :root{
-    --base:#eff1f5; --mantle:#e6e9ef; --surf0:#ccd0da; --surf1:#bcc0cc;
-    --ovl:#8c8fa1; --subtext:#5c5f77; --text:#4c4f69;
-    --blue:#1e66f5; --green:#40a02b;
-    --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  }
-    /* Dark values live in one place and are applied by two selectors: the
-       system preference when the visitor has not chosen, and the explicit
-       choice when they have. The attribute wins in both directions. */
-    @media (prefers-color-scheme:dark){
-      :root:not([data-theme="light"]){
-        --base:#1e1e2e; --mantle:#181825; --surf0:#313244; --surf1:#45475a;
-        --ovl:#6c7086; --subtext:#a6adc8; --text:#cdd6f4;
-        --blue:#89b4fa; --green:#a6e3a1;
-      }
-    }
-    :root[data-theme="dark"]{
-      --base:#1e1e2e; --mantle:#181825; --surf0:#313244; --surf1:#45475a;
-      --ovl:#6c7086; --subtext:#a6adc8; --text:#cdd6f4;
-      --blue:#89b4fa; --green:#a6e3a1;
-    }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{
-    background:var(--base);color:var(--text);font-family:var(--sans);
-    font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;
-    padding:clamp(2rem,6vw,4rem) 1.25rem 4rem;
-  }
-  main{max-width:42rem;margin-inline:auto;display:flex;flex-direction:column;gap:2rem}
-  h1{font-family:var(--mono);font-size:clamp(1.6rem,4vw,2.1rem);font-weight:700;letter-spacing:-.03em;line-height:1.1}
-  h2{font-family:var(--mono);font-size:1.08rem;font-weight:600;letter-spacing:-.01em;margin-bottom:.5rem}
-  p{text-wrap:pretty}
-  section{display:flex;flex-direction:column;gap:.7rem}
-  ul{padding-left:1.15rem;display:flex;flex-direction:column;gap:.4rem}
-  a{color:var(--blue);text-underline-offset:3px}
-  a:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
-  code{font-family:var(--mono);font-size:.88em;background:var(--surf0);padding:.12em .4em;
-       border-radius:5px;overflow-wrap:anywhere}
-  .meta{font-size:.88rem;color:var(--ovl)}
-  .lede{font-size:1.05rem;color:var(--subtext)}
-  .card{background:var(--mantle);border:1px solid var(--surf0);border-radius:12px;padding:1.2rem 1.4rem}
-  .tablewrap{overflow-x:auto;border:1px solid var(--surf0);border-radius:12px}
-  table{width:100%;border-collapse:collapse;font-size:.92rem}
-  th,td{text-align:left;padding:.65rem .9rem;border-bottom:1px solid var(--surf0);vertical-align:top}
-  th{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;
-     color:var(--subtext);background:var(--mantle);font-weight:600}
-  tbody tr:last-child td{border-bottom:0}
-  .ok{color:var(--green);font-weight:600}
-  footer{border-top:1px solid var(--surf0);padding-top:1.4rem;font-size:.88rem;color:var(--ovl);
-         display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
-  footer a{color:var(--subtext)}
-  .theme-toggle{position:fixed;top:1rem;right:1rem;z-index:10;
-    display:inline-flex;align-items:center;gap:.4rem;
-    font:inherit;font-size:.8rem;color:var(--subtext);
-    background:var(--mantle);border:1px solid var(--surf0);
-    border-radius:999px;padding:.4rem .8rem;cursor:pointer}
-  .theme-toggle:hover{color:var(--text);border-color:var(--surf1)}
-  .theme-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  .theme-toggle svg{width:15px;height:15px}
-  @media (max-width:480px){.theme-toggle{top:.6rem;right:.6rem;padding:.35rem .6rem}}
-</style>
 </head>
 <body>
-<button class="theme-toggle" id="theme-toggle" type="button" aria-live="polite">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-  <span id="theme-label">Theme</span>
-</button>
+<a class="skip" href="#main">Skip to content</a>
 
-<main>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      Auto Auth Filler
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/docs">Docs</a>
+      <a href="/faq">FAQ</a>
+      <a href="/privacy" aria-current="page">Privacy</a>
+      <a href="https://github.com/AlekPnv/auto-auth-filler">GitHub</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      <span id="theme-label">Theme</span>
+    </button>
+  </div>
+</header>
 
-  <header>
+<main id="main">
+  <div class="wrap narrow">
+
     <h1>Privacy Policy</h1>
-    <p class="meta" style="margin-top:.5rem">Auto Auth Filler, last updated 2 August 2026</p>
-    <p class="lede" style="margin-top:1rem">
-      Everything happens inside your browser. There is no server, no account, no
+    <p style="color:var(--ovl);font-size:.9rem;margin-top:.5rem">Auto Auth Filler, last updated 2 August 2026</p>
+    <p class="lede" style="margin-top:1rem">Everything happens inside your browser. There is no server, no account, no
       analytics. Nothing is sent anywhere except directly to Google's own API
-      in order to read your mail on your behalf.
-    </p>
-  </header>
+      in order to read your mail on your behalf.</p>
 
   <section>
     <h2>What Google user data the extension accesses</h2>
@@ -326,39 +300,19 @@
     </p>
   </section>
 
-  <footer>
-    <a href="/">Auto Auth Filler</a>
-    <a href="https://github.com/AlekPnv/auto-auth-filler">Source code</a>
-  </footer>
-
+  </div>
 </main>
-<script>
-  (function () {
-    var root = document.documentElement;
-    var btn = document.getElementById("theme-toggle");
-    var label = document.getElementById("theme-label");
-    var systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function current() {
-      if (root.dataset.theme) return root.dataset.theme;
-      return systemDark.matches ? "dark" : "light";
-    }
-    function paint() {
-      var now = current();
-      // The button says what a click will do, not what is showing.
-      label.textContent = now === "dark" ? "Light mode" : "Dark mode";
-      btn.setAttribute("aria-label", "Switch to " + label.textContent.toLowerCase());
-    }
-    btn.addEventListener("click", function () {
-      var next = current() === "dark" ? "light" : "dark";
-      root.dataset.theme = next;
-      try { localStorage.setItem("theme", next); } catch (e) {}
-      paint();
-    });
-    // Follow the system only while the visitor has made no choice of their own.
-    systemDark.addEventListener("change", function () { if (!root.dataset.theme) paint(); });
-    paint();
-  })();
-</script>
+<footer>
+  <div class="wrap">
+    <span>Auto Auth Filler</span>
+    <a href="/docs">Docs</a>
+    <a href="/faq">FAQ</a>
+    <a href="/privacy">Privacy</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler">Source</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler/issues">Report a problem</a>
+    <span class="spacer">MIT licence</span>
+  </div>
+</footer>
 </body>
 </html>

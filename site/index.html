@@ -4,19 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Auto Auth Filler</title>
-<meta name="description" content="Auto Auth Filler is a browser extension that reads the verification code from your latest Gmail message and fills it into the one-time-code field on any website." />
+<meta name="description" content="Auto Auth Filler is a browser extension that detects the verification code in your latest Gmail message and fills it into the one-time-code field on the site you are signing in to." />
 <meta name="google-site-verification" content="8aqsXIR3fOtwj0UYAIJAL608NgPXEZgzEm2JZPYdAE4" />
 <meta name="application-name" content="Auto Auth Filler" />
 <link rel="canonical" href="https://autoauthfiller.com/" />
 <meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
 
-<!-- Without these the link renders as a bare URL wherever it is shared: the
-     video description, a message, a forum post. -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Auto Auth Filler" />
 <meta property="og:title" content="Auto Auth Filler" />
-<meta property="og:description" content="A browser extension that reads the verification code from your latest Gmail message and fills it into the one-time-code field on any website." />
+<meta property="og:description" content="A browser extension that detects the verification code in your latest Gmail message and fills it into the one-time-code field on any website." />
 <meta property="og:url" content="https://autoauthfiller.com/" />
 <meta property="og:image" content="https://autoauthfiller.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
@@ -24,237 +22,271 @@
 <meta property="og:image:alt" content="A verification code being filled into a login form automatically." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Auto Auth Filler" />
-<meta name="twitter:description" content="A browser extension that reads the verification code from your latest Gmail message and fills it into the one-time-code field on any website." />
+<meta name="twitter:description" content="A browser extension that detects the verification code in your latest Gmail message and fills it into the one-time-code field on any website." />
 <meta name="twitter:image" content="https://autoauthfiller.com/og-image.png" />
 
-<!-- Drawn rather than typed, so no character can end up in the page text. -->
+<!-- Drawn rather than typed. A padlock emoji here lands in the page text, and
+     Google's branding check compares that text against the consent screen name. -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389b4fa' stroke-width='2' stroke-linecap='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>" />
+<link rel="stylesheet" href="/style.css" />
+<script src="/theme.js" defer></script>
 <script>
-  // Before first paint: a stored choice must win over the system preference,
-  // otherwise the page renders in the wrong theme and then corrects itself.
+  // Before first paint, so a stored choice never flashes the wrong theme.
   try {
     var t = localStorage.getItem("theme");
     if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
   } catch (e) { /* private mode blocks storage; the system preference still works */ }
 </script>
-<style>
-  :root{
-    --base:#eff1f5; --mantle:#e6e9ef; --surf0:#ccd0da; --surf1:#bcc0cc;
-    --ovl:#8c8fa1; --subtext:#5c5f77; --text:#4c4f69;
-    --blue:#1e66f5; --green:#40a02b;
-    --mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  }
-    /* Dark values live in one place and are applied by two selectors: the
-       system preference when the visitor has not chosen, and the explicit
-       choice when they have. The attribute wins in both directions. */
-    @media (prefers-color-scheme:dark){
-      :root:not([data-theme="light"]){
-        --base:#1e1e2e; --mantle:#181825; --surf0:#313244; --surf1:#45475a;
-        --ovl:#6c7086; --subtext:#a6adc8; --text:#cdd6f4;
-        --blue:#89b4fa; --green:#a6e3a1;
-      }
-    }
-    :root[data-theme="dark"]{
-      --base:#1e1e2e; --mantle:#181825; --surf0:#313244; --surf1:#45475a;
-      --ovl:#6c7086; --subtext:#a6adc8; --text:#cdd6f4;
-      --blue:#89b4fa; --green:#a6e3a1;
-    }
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  body{
-    background:var(--base);color:var(--text);font-family:var(--sans);
-    font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;
-    padding:clamp(2rem,6vw,4.5rem) 1.25rem 4rem;
-  }
-  main{max-width:44rem;margin-inline:auto;display:flex;flex-direction:column;gap:2.5rem}
-  h1{font-family:var(--mono);font-size:clamp(1.9rem,5vw,2.7rem);font-weight:700;
-     letter-spacing:-.03em;line-height:1.05}
-  .logo{line-height:1;margin-bottom:.5rem;color:var(--blue)}
-  .logo svg{display:block;margin:0 auto}
-  h2{font-family:var(--mono);font-size:1.15rem;font-weight:600;letter-spacing:-.01em;margin-bottom:.6rem}
-  p{text-wrap:pretty}
-  .lede{font-size:1.1rem;color:var(--subtext)}
-  section{display:flex;flex-direction:column;gap:.6rem}
-  ul{padding-left:1.15rem;display:flex;flex-direction:column;gap:.45rem}
-  a{color:var(--blue);text-underline-offset:3px}
-  a:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:3px}
-  code{font-family:var(--mono);font-size:.88em;background:var(--surf0);overflow-wrap:anywhere;
-       padding:.12em .4em;border-radius:5px}
-  .stores{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:.4rem}
-  .store{display:flex;align-items:center;gap:.7rem;flex:1 1 15rem;
-    padding:.8rem 1rem;border:1px solid var(--surf0);border-radius:12px;
-    background:var(--mantle);color:var(--text);text-decoration:none}
-  .store:hover{border-color:var(--blue)}
-  .store:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  .store svg{flex-shrink:0;color:var(--blue)}
-  .store strong{display:block;font-size:.95rem;line-height:1.25}
-  .store small{color:var(--subtext);font-size:.8rem}
-  .card{background:var(--mantle);border:1px solid var(--surf0);border-radius:12px;padding:1.3rem 1.5rem}
-  .badges{display:flex;flex-wrap:wrap;gap:.5rem}
-  .badge{font-family:var(--mono);font-size:.75rem;font-weight:600;padding:.22rem .65rem;
-         border-radius:999px;border:1px solid var(--surf1);color:var(--subtext)}
-  .ok{color:var(--green);font-weight:600}
-  footer{border-top:1px solid var(--surf0);padding-top:1.5rem;font-size:.88rem;color:var(--ovl);
-         display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
-  footer a{color:var(--subtext)}
-  .theme-toggle{position:fixed;top:1rem;right:1rem;z-index:10;
-    display:inline-flex;align-items:center;gap:.4rem;
-    font:inherit;font-size:.8rem;color:var(--subtext);
-    background:var(--mantle);border:1px solid var(--surf0);
-    border-radius:999px;padding:.4rem .8rem;cursor:pointer}
-  .theme-toggle:hover{color:var(--text);border-color:var(--surf1)}
-  .theme-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  .theme-toggle svg{width:15px;height:15px}
-  @media (max-width:480px){.theme-toggle{top:.6rem;right:.6rem;padding:.35rem .6rem}}
-</style>
 </head>
 <body>
-<button class="theme-toggle" id="theme-toggle" type="button" aria-live="polite">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-       stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-  <span id="theme-label">Theme</span>
-</button>
+<a class="skip" href="#main">Skip to content</a>
 
-<main>
-
-  <header>
-    <!-- The padlock is drawn rather than typed. Google's branding check reads
-         the header as plain text and compares it with the OAuth consent screen
-         app name. A padlock emoji here, even outside the h1 and marked
-         aria-hidden, still lands in that text as "[lock] Auto Auth Filler" and
-         fails the comparison, because aria-hidden hides an element from screen
-         readers and not from a text extractor. An SVG carries no characters. -->
-    <div class="logo" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round"
-           stroke-linejoin="round" focusable="false">
-        <rect x="3" y="11" width="18" height="11" rx="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
-    </div>
-    <h1>Auto Auth Filler</h1>
-    <p class="lede" style="margin-top:.8rem">
-      <strong>Auto Auth Filler is a browser extension for Firefox and Chrome.</strong>
-      It reads the verification code from your latest Gmail message and fills it
-      into the one-time-code field on the website you are signing in to, so you
-      no longer have to switch to your inbox and copy it by hand.
-    </p>
-    <div class="badges" style="margin-top:1rem">
-      <span class="badge">Firefox 140+</span>
-      <span class="badge">Chrome · Edge · Brave</span>
-      <span class="badge">Open source · MIT</span>
-    </div>
-  </header>
+      Auto Auth Filler
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/" aria-current="page">Home</a>
+      <a href="/docs">Docs</a>
+      <a href="/faq">FAQ</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/AlekPnv/auto-auth-filler">GitHub</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      <span id="theme-label">Theme</span>
+    </button>
+  </div>
+</header>
 
-  <section>
-    <h2>The purpose of this application</h2>
-    <p>
-      Signing in somewhere often means leaving the page, opening your inbox,
-      copying six digits and coming back. Auto Auth Filler exists to remove that
-      round trip, and does nothing else.
-    </p>
-    <p>
-      When the extension notices a verification field on a page, it searches your
-      recent Gmail messages for a matching code and enters it. It requests
-      read-only access to Gmail for that single purpose. It does not send email,
-      does not modify your account and has no other function.
-    </p>
-    <ul>
-      <li>Works on any website. Fields are recognised by their name, label, input mode and surrounding wording, so there is no list of supported sites and no per-site setup.</li>
-      <li>Handles the usual code formats: six to eight digits, alphanumeric codes, hyphenated codes, Google's <code>G-XXXXXX</code> style and split single-digit boxes.</li>
-      <li>Understands German forms as well as English ones.</li>
-      <li>Filling can be switched off in the settings. On password fields the extension always waits for a click.</li>
-    </ul>
-  </section>
+<main id="main">
+  <div class="wrap">
 
-  <section>
-    <h2>Privacy</h2>
-    <div class="card">
+    <section class="hero">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+          <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      </div>
+      <h1>Auto Auth Filler</h1>
+      <p class="lede">
+        Auto Auth Filler reduces the friction in email verification. It detects the
+        code in your latest Gmail message and fills it into the one-time-code field
+        on the page you are signing in to, so you stop switching to your inbox to
+        copy six digits by hand.
+      </p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 3v12" /><path d="m7 12 5 5 5-5" /><path d="M4 21h16" />
+          </svg>
+          Add to Firefox
+        </a>
+        <a class="btn btn-secondary" href="https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M12 3v12" /><path d="m7 12 5 5 5-5" /><path d="M4 21h16" />
+          </svg>
+          Add to Chrome
+        </a>
+      </div>
+
+      <div class="badges">
+        <span class="badge">Firefox 140+</span>
+        <span class="badge">Chrome &middot; Edge &middot; Brave</span>
+        <span class="badge">English &middot; Deutsch</span>
+        <span class="badge">Open source &middot; MIT</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="demo-h" class="narrow">
+      <h2 id="demo-h">See it work</h2>
       <p>
-        Everything happens inside your browser. There is no server, no account
-        and no analytics. Nothing is transmitted anywhere except directly to
-        Google in order to read your own mail.
+        Just under two minutes, from installing to a code arriving and filling
+        itself in.
       </p>
-      <p style="margin-top:.7rem">
-        The extension requests one permission,
-        <code>gmail.readonly</code>, which is <span class="ok">read-only</span>. It
-        cannot send, delete or change any email. Message bodies are held in
-        memory only long enough to look for a code, then discarded; they are
-        never written to disk or logged.
+      <div class="video">
+        <!-- youtube-nocookie sets no tracking cookie until the video is played,
+             which is the right default for a site about not leaking data. -->
+        <iframe src="https://www.youtube-nocookie.com/embed/S_3jNeLl1Iw"
+                title="Auto Auth Filler demo video"
+                loading="lazy"
+                allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
+                allowfullscreen></iframe>
+      </div>
+    </section>
+
+    <section aria-labelledby="how-h" class="narrow">
+      <h2 id="how-h">How it works</h2>
+      <ol>
+        <li>
+          You sign in with Google once, granting the <code>gmail.readonly</code>
+          scope. The extension cannot send, delete or change any mail.
+        </li>
+        <li>
+          When you land on a page with a verification field, the extension
+          recognises it and searches your recent Gmail messages for a matching code.
+        </li>
+        <li>
+          The code is entered, and the overlay shows which email it came from and
+          how long ago it arrived. Filling can be switched off if you would rather
+          click each time.
+        </li>
+      </ol>
+      <p class="note">
+        A code is only entered when its sender matches the site you are on. That is
+        what stops one service's code being typed into another's form.
       </p>
-      <p style="margin-top:.7rem">
-        Full details, including the Google API Services Limited Use disclosure,
-        are in the <a href="/privacy">privacy policy</a>.
+    </section>
+
+    <section aria-labelledby="feat-h">
+      <h2 id="feat-h">What it does</h2>
+      <div class="grid">
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            No list of supported sites
+          </h3>
+          <p>
+            Code fields are recognised from the form itself: the field name, its
+            label, how many characters it takes and the wording around it. There is
+            nothing to configure per website.
+          </p>
+        </div>
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16" /><path d="M4 12h10" /><path d="M4 17h7" /></svg>
+            Handles the awkward formats
+          </h3>
+          <p>
+            Six to eight digits, alphanumeric codes, hyphenated ones like
+            <code>BYF-4UI</code>, Google's <code>G-XXXXXX</code> style, and split
+            boxes where each character has its own input.
+          </p>
+        </div>
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+            Optional auto-submit
+          </h3>
+          <p>
+            The form can be submitted for you once the code is in. Off is a single
+            toggle away, and password fields always wait for a deliberate click.
+          </p>
+        </div>
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+            English and German
+          </h3>
+          <p>
+            Both the interface and the code detection. German compounds like
+            <code>Best&auml;tigungscode</code> are recognised, which a plain word
+            boundary would miss.
+          </p>
+        </div>
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+            Payment forms are left alone
+          </h3>
+          <p>
+            Card fields are refused outright, on the browser's own autocomplete
+            tokens and on card wording in both languages, so a code is never typed
+            into a checkout form.
+          </p>
+        </div>
+        <div class="card feature">
+          <h3>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M9 11 4 6" /><path d="M4 6h6" /><path d="M20 18H10" /><path d="m15 13 5 5-5 5" /></svg>
+            Per-domain blocklist
+          </h3>
+          <p>
+            Any site can be silenced from the settings page, and the overlay will
+            never appear there again.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="shots-h" class="narrow">
+      <h2 id="shots-h">Screenshots</h2>
+      <figure>
+        <img src="/screenshots/code-filled.png" width="1280" height="800" loading="lazy"
+             alt="A verification code filled into a Battle.net login form, with the overlay naming the email it came from." />
+        <figcaption>The code arrives and is entered, with the overlay naming the email and its age.</figcaption>
+      </figure>
+      <figure>
+        <img src="/screenshots/settings.png" width="1280" height="800" loading="lazy"
+             alt="The settings page, showing the behaviour, detection, language and account sections." />
+        <figcaption>Every behaviour is a toggle, including turning automatic filling off entirely.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="priv-h" class="narrow">
+      <h2 id="priv-h">Privacy</h2>
+      <div class="card">
+        <p>
+          Everything happens inside your browser. There is no server, no account
+          and no analytics. The only network requests go directly to Google, to
+          read your own mail on your behalf.
+        </p>
+        <p style="margin-top:.8rem">
+          The single permission requested is <code>gmail.readonly</code>. Message
+          contents are held in memory only for as long as it takes to look for a
+          code, then discarded. Nothing is written to disk and nothing is logged.
+        </p>
+        <p style="margin-top:.8rem">
+          Full detail, including the Google API Services Limited Use disclosure,
+          is in the <a href="/privacy">privacy policy</a>.
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="get-h" class="narrow">
+      <h2 id="get-h">Get it</h2>
+      <div class="stores">
+        <a class="store" href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v10" /><path d="M8 10h8" /></svg>
+          <span><strong>Firefox</strong><small>addons.mozilla.org</small></span>
+        </a>
+        <a class="store" href="https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.4" /><path d="M12 8.6h9" /></svg>
+          <span><strong>Chrome, Edge, Brave, Opera, Vivaldi</strong><small>Chrome Web Store</small></span>
+        </a>
+      </div>
+      <p style="margin-top:1rem">
+        Installing from a store needs no Google credentials of your own. Safari is
+        not supported; the reasons are in the <a href="/faq#safari">FAQ</a>. To run
+        it from source instead, the steps are in the
+        <a href="/docs">documentation</a>.
       </p>
-    </div>
-  </section>
+    </section>
 
-  <section>
-    <h2>Installing</h2>
-    <div class="stores">
-      <a class="store" href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" focusable="false">
-          <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2.2a7.8 7.8 0 0 1 7.55 5.9c-.5-1.3-1.5-2.3-2.8-2.6-1-.3-2 0-2.6.7-.4.4-.9.6-1.4.6-1.5 0-2.8 1-3.2 2.4-.3 1 0 2.1.7 2.9a3.6 3.6 0 0 0 5.6-.5 4.6 4.6 0 0 1-6.7 1.2A7.8 7.8 0 0 1 12 4.2z"/>
-        </svg>
-        <span>
-          <strong>Firefox</strong>
-          <small>addons.mozilla.org</small>
-        </span>
-      </a>
-      <a class="store" href="https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" focusable="false">
-          <path d="M12 2a10 10 0 0 1 8.66 5H12a5 5 0 0 0-4.9 4.03L3.5 4.8A10 10 0 0 1 12 2zM2.4 7.3l4.2 7.27A5 5 0 0 0 12 17c.2 0 .4 0 .6-.03L9 22.85A10 10 0 0 1 2.4 7.3zm12.9 1.9h6.35a10 10 0 0 1-7.13 12.6l4.2-7.27a5 5 0 0 0-.63-5.33zM12 8.8a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4z"/>
-        </svg>
-        <span>
-          <strong>Chrome, Edge, Brave, Opera, Vivaldi</strong>
-          <small>Chrome Web Store</small>
-        </span>
-      </a>
-    </div>
-    <p style="margin-top:1rem">
-      Installing from a store needs no Google credentials of your own. To run the
-      extension from source instead, or against your own Google Cloud project, the
-      setup steps are in the repository's
-      <a href="https://github.com/AlekPnv/auto-auth-filler#readme">README</a>.
-    </p>
-  </section>
-
-  <footer>
-    <span>Auto Auth Filler</span>
-    <a href="/privacy">Privacy policy</a>
-    <a href="https://github.com/AlekPnv/auto-auth-filler">Source code</a>
-  </footer>
-
+  </div>
 </main>
-<script>
-  (function () {
-    var root = document.documentElement;
-    var btn = document.getElementById("theme-toggle");
-    var label = document.getElementById("theme-label");
-    var systemDark = window.matchMedia("(prefers-color-scheme: dark)");
 
-    function current() {
-      if (root.dataset.theme) return root.dataset.theme;
-      return systemDark.matches ? "dark" : "light";
-    }
-    function paint() {
-      var now = current();
-      // The button says what a click will do, not what is showing.
-      label.textContent = now === "dark" ? "Light mode" : "Dark mode";
-      btn.setAttribute("aria-label", "Switch to " + label.textContent.toLowerCase());
-    }
-    btn.addEventListener("click", function () {
-      var next = current() === "dark" ? "light" : "dark";
-      root.dataset.theme = next;
-      try { localStorage.setItem("theme", next); } catch (e) {}
-      paint();
-    });
-    // Follow the system only while the visitor has made no choice of their own.
-    systemDark.addEventListener("change", function () { if (!root.dataset.theme) paint(); });
-    paint();
-  })();
-</script>
+<footer>
+  <div class="wrap">
+    <span>Auto Auth Filler</span>
+    <a href="/docs">Docs</a>
+    <a href="/faq">FAQ</a>
+    <a href="/privacy">Privacy</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler">Source</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler/issues">Report a problem</a>
+    <span class="spacer">MIT licence</span>
+  </div>
+</footer>
 </body>
 </html>

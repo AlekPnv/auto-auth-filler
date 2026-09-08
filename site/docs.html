@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Documentation: Auto Auth Filler</title>
+<meta name="description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta name="application-name" content="Auto Auth Filler" />
+<link rel="canonical" href="https://autoauthfiller.com/docs" />
+<meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Auto Auth Filler" />
+<meta property="og:title" content="Documentation: Auto Auth Filler" />
+<meta property="og:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta property="og:url" content="https://autoauthfiller.com/docs" />
+<meta property="og:image" content="https://autoauthfiller.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="A verification code being filled into a login form automatically." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Documentation: Auto Auth Filler" />
+<meta name="twitter:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta name="twitter:image" content="https://autoauthfiller.com/og-image.png" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389b4fa' stroke-width='2' stroke-linecap='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>" />
+<link rel="stylesheet" href="/style.css" />
+<script src="/theme.js" defer></script>
+<script>
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode blocks storage; the system preference still works */ }
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      Auto Auth Filler
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/docs" aria-current="page">Docs</a>
+      <a href="/faq">FAQ</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/AlekPnv/auto-auth-filler">GitHub</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      <span id="theme-label">Theme</span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap narrow">
+
+    <h1>Documentation</h1>
+    <p class="lede" style="margin-top:.8rem">
+      Everything needed to install Auto Auth Filler, understand what each setting
+      does, and work out what happened when a code does not appear.
+    </p>
+
+    <nav aria-label="On this page" style="margin-block:1.6rem">
+      <ul>
+        <li><a href="#install">Installing</a></li>
+        <li><a href="#first-run">First run</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li><a href="#trouble">Troubleshooting</a></li>
+        <li><a href="#source">Running from source</a></li>
+        <li><a href="#language">Adding a language</a></li>
+        <li><a href="#architecture">How it is built</a></li>
+      </ul>
+    </nav>
+
+    <section id="install" aria-labelledby="install-h">
+      <h2 id="install-h">Installing</h2>
+      <div class="stores">
+        <a class="store" href="https://addons.mozilla.org/firefox/addon/auto-auth-filler/">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><path d="M12 7v10" /><path d="M8 10h8" /></svg>
+          <span><strong>Firefox</strong><small>addons.mozilla.org</small></span>
+        </a>
+        <a class="store" href="https://chromewebstore.google.com/detail/lblhpbalgfpoaeofgpdielbanocedjia">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.4" /><path d="M12 8.6h9" /></svg>
+          <span><strong>Chrome, Edge, Brave, Opera, Vivaldi</strong><small>Chrome Web Store</small></span>
+        </a>
+      </div>
+      <p style="margin-top:1rem">
+        Edge, Brave, Opera and Vivaldi install the Chrome package. Edge asks once
+        for permission to use other stores. Safari is not supported, and
+        <a href="/faq#safari">the FAQ explains why</a>.
+      </p>
+      <div class="scroll-x" style="margin-top:1rem">
+        <table>
+          <thead><tr><th>Browser</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Firefox 140 and newer</td><td>Supported</td></tr>
+            <tr><td>Chrome 102 and newer</td><td>Supported</td></tr>
+            <tr><td>Edge, Brave, Opera, Vivaldi</td><td>Supported, Chromium based</td></tr>
+            <tr><td>Firefox for Android</td><td>Declared in the manifest, never tested</td></tr>
+            <tr><td>Safari, iOS, iPadOS</td><td>Not supported</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note" style="margin-top:1rem">
+        Firefox 140 is the floor because it is the first version supporting the
+        <code>data_collection_permissions</code> manifest key that
+        addons.mozilla.org requires.
+      </p>
+    </section>
+
+    <section id="first-run" aria-labelledby="first-h">
+      <h2 id="first-h">First run</h2>
+      <ol>
+        <li>Click the extension icon in the toolbar.</li>
+        <li>Click <strong>Sign in with Google</strong> and approve the read-only Gmail permission.</li>
+        <li>
+          You will see an <strong>unverified app</strong> warning. This is expected
+          and is explained in the <a href="/faq#unverified">FAQ</a>. Click
+          <strong>Advanced</strong>, then continue.
+        </li>
+        <li>
+          Visit any site that emails you a verification code. When the extension
+          finds a code field, it enters the code and the overlay names the email it
+          came from.
+        </li>
+      </ol>
+      <p>
+        You sign in once. The extension stores a refresh token and renews access
+        silently, so the consent screen does not come back.
+      </p>
+    </section>
+
+    <section id="settings" aria-labelledby="set-h">
+      <h2 id="set-h">Settings</h2>
+      <p>Open the settings page from the popup footer.</p>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Fill automatically</td><td>On</td><td>Enters the code as soon as it is found. Password fields always wait for a click regardless.</td></tr>
+            <tr><td>Auto-submit after filling</td><td>On</td><td>Activates the form's submit button once the field is filled.</td></tr>
+            <tr><td>Maximum code age</td><td>10 minutes</td><td>Codes found in older emails are ignored.</td></tr>
+            <tr><td>Blocked domains</td><td>Empty</td><td>Domains, one per line, where the overlay never appears.</td></tr>
+            <tr><td>Language</td><td>Match browser</td><td>The interface language. Code detection understands English and German whatever this is set to.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="trouble" aria-labelledby="tr-h">
+      <h2 id="tr-h">Troubleshooting</h2>
+
+      <details>
+        <summary>Nothing happens on a page that clearly wants a code</summary>
+        <p>
+          Detection is scored from the form itself, so an unusual field can fall
+          below the threshold. Open the browser console and look for lines starting
+          <code>[Auto Auth Filler]</code>; they report which step ran and why a
+          lookup stopped. A report with the field's label and length is genuinely
+          useful, and the
+          <a href="https://github.com/AlekPnv/auto-auth-filler/issues/new/choose">issue forms</a>
+          ask for exactly that.
+        </p>
+      </details>
+
+      <details>
+        <summary>The overlay says a code was found but it is not filled</summary>
+        <p>
+          Most likely the sender does not match the site. A code is only entered
+          when the message plausibly came from the site you are on, which is what
+          stops one service's code being typed into another's form. The overlay
+          shows the code so you can copy it, but will not enter it.
+        </p>
+      </details>
+
+      <details>
+        <summary>It keeps searching after I have already signed in</summary>
+        <p>
+          The lookup stays open briefly so that a rejected code can be replaced by
+          a newer one. It closes once the code field disappears, which is how a
+          successful sign-in is recognised.
+        </p>
+      </details>
+
+      <details>
+        <summary>Sign-in fails or the consent screen reappears</summary>
+        <p>
+          Press <strong>Sign out</strong> in the settings page and sign in again.
+          If it persists, check that access has not been revoked at
+          <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.
+        </p>
+      </details>
+
+      <details>
+        <summary>I do not want it running on a particular site</summary>
+        <p>
+          Add the domain to the blocklist in the settings page, one per line. The
+          overlay will never appear there again.
+        </p>
+      </details>
+    </section>
+
+    <section id="source" aria-labelledby="src-h">
+      <h2 id="src-h">Running from source</h2>
+      <p>
+        Use this to run an unreleased version or to run against your own Google
+        Cloud project. Unlike a store install, this needs credentials of your own,
+        because the published package carries its own and the repository does not.
+      </p>
+      <p>
+        The full steps, including creating the OAuth client and why it must be of
+        type <em>Web application</em>, are in the
+        <a href="https://github.com/AlekPnv/auto-auth-filler#installing-from-source">README</a>.
+      </p>
+    </section>
+
+    <section id="language" aria-labelledby="lang-h">
+      <h2 id="lang-h">Adding a language</h2>
+      <p>
+        English and German are supported. Every language-dependent word lives in
+        <code>vocabulary.js</code>, and adding a language means editing that one
+        file.
+      </p>
+      <p>
+        Language matters in four places, and the first is the one that catches
+        people out: the Gmail search query is a gate, not a filter, so a message the
+        query does not match is never fetched and no pattern further down can
+        recover it. The other three are the labels that locate a code inside a
+        message, the words that identify a code field on a page, and the text on
+        the submit button.
+      </p>
+      <p class="note">
+        Entries are regular expression fragments rather than plain strings. German
+        shows why: compounds like <code>Best&auml;tigungscode</code> have no word
+        boundary before <code>code</code>, so a pattern written with
+        <code>\b</code> misses them entirely. For a language in a non-Latin script,
+        read the note at the top of the file first.
+      </p>
+    </section>
+
+    <section id="architecture" aria-labelledby="arch-h">
+      <h2 id="arch-h">How it is built</h2>
+      <p>
+        Manifest V3, no build step, no framework and no runtime dependencies. Every
+        file in the package is handwritten JavaScript, HTML and CSS, readable
+        exactly as shipped.
+      </p>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><code>background.js</code></td><td>OAuth, the Gmail search, and extracting a code from a message</td></tr>
+            <tr><td><code>content.js</code></td><td>Field detection, the overlay, and filling</td></tr>
+            <tr><td><code>vocabulary.js</code></td><td>Every language-dependent word, in one table</td></tr>
+            <tr><td><code>i18n.js</code></td><td>The interface strings and the language switcher</td></tr>
+            <tr><td><code>config.js</code></td><td>Your OAuth credentials. Git-ignored, never committed</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:1rem">
+        The test suite runs with <code>node --test</code> and needs nothing
+        installed. It covers code extraction against real email shapes, the PKCE
+        implementation against the RFC 7636 test vector, field scoring, and the
+        translations.
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Auto Auth Filler</span>
+    <a href="/docs">Docs</a>
+    <a href="/faq">FAQ</a>
+    <a href="/privacy">Privacy</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler">Source</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler/issues">Report a problem</a>
+    <span class="spacer">MIT licence</span>
+  </div>
+</footer>
+</body>
+</html>

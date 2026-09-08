@@ -1,0 +1,354 @@
+/* Auto Auth Filler: one stylesheet for every page.
+ *
+ * Each page used to inline its own copy, which drifted almost immediately:
+ * privacy.html was left without a canonical link, without any Open Graph tags
+ * and still carrying the padlock emoji favicon that the home page had replaced
+ * to satisfy Google's branding check. One file cannot drift from itself.
+ *
+ * The palette is unchanged from the original site. */
+
+:root {
+  --base: #eff1f5;
+  --mantle: #e6e9ef;
+  --surf0: #ccd0da;
+  --surf1: #bcc0cc;
+  --ovl: #8c8fa1;
+  --subtext: #5c5f77;
+  --text: #4c4f69;
+  --blue: #1e66f5;
+  --green: #40a02b;
+  --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --measure: 46rem;
+  --wide: 64rem;
+  --radius: 12px;
+}
+
+/* Dark values live once and are applied by two selectors: the system
+   preference when the visitor has not chosen, and the explicit choice when
+   they have, so the toggle wins in both directions. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --base: #1e1e2e;
+    --mantle: #181825;
+    --surf0: #313244;
+    --surf1: #45475a;
+    --ovl: #6c7086;
+    --subtext: #a6adc8;
+    --text: #cdd6f4;
+    --blue: #89b4fa;
+    --green: #a6e3a1;
+  }
+}
+
+:root[data-theme="dark"] {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --surf0: #313244;
+  --surf1: #45475a;
+  --ovl: #6c7086;
+  --subtext: #a6adc8;
+  --text: #cdd6f4;
+  --blue: #89b4fa;
+  --green: #a6e3a1;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+/* Someone who has asked their system to reduce motion means it. Every
+   transition and the smooth scrolling above are turned off rather than
+   shortened, because a shortened animation is still an animation. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------------- typography */
+
+h1, h2, h3 { font-family: var(--mono); letter-spacing: -0.02em; line-height: 1.15; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 700; letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.25rem, 3vw, 1.5rem); font-weight: 600; }
+h3 { font-size: 1.02rem; font-weight: 600; }
+p { text-wrap: pretty; }
+.lede { font-size: 1.12rem; color: var(--subtext); }
+small { font-size: 0.85rem; }
+
+a { color: var(--blue); text-underline-offset: 3px; }
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--surf0);
+  overflow-wrap: anywhere;
+  padding: 0.12em 0.4em;
+  border-radius: 5px;
+}
+
+ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; }
+
+/* ------------------------------------------------------------------- skeleton */
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--mantle);
+  color: var(--text);
+  padding: 0.7rem 1.1rem;
+  border: 1px solid var(--surf1);
+  border-radius: 0 0 var(--radius) 0;
+  z-index: 100;
+}
+.skip:focus { left: 0; }
+
+.wrap { width: min(100% - 2.5rem, var(--wide)); margin-inline: auto; }
+.narrow { max-width: var(--measure); }
+
+main { flex: 1; padding-block: clamp(2rem, 5vw, 3.5rem) 4rem; }
+
+section { margin-block-end: clamp(2.5rem, 6vw, 4rem); }
+section > * + * { margin-block-start: 0.7rem; }
+
+/* ----------------------------------------------------------------- site nav */
+
+.topbar {
+  border-bottom: 1px solid var(--surf0);
+  background: color-mix(in srgb, var(--base) 88%, transparent);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+}
+
+.topbar .wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.6rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+.brand svg { color: var(--blue); flex-shrink: 0; }
+
+.nav { display: flex; gap: 0.2rem; margin-inline-start: auto; flex-wrap: wrap; }
+.nav a {
+  color: var(--subtext);
+  text-decoration: none;
+  font-size: 0.92rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.nav a:hover { color: var(--text); background: var(--mantle); }
+/* aria-current is the accessible way to mark the page you are on, so the
+   styling hangs off it rather than off a separate class. */
+.nav a[aria-current="page"] { color: var(--text); background: var(--mantle); font-weight: 600; }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--subtext);
+  background: transparent;
+  border: 1px solid var(--surf0);
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--surf1); }
+.theme-toggle svg { width: 14px; height: 14px; }
+
+/* ---------------------------------------------------------------------- hero */
+
+.hero { text-align: center; padding-block: clamp(1rem, 4vw, 2.5rem) 0; }
+.hero .logo { color: var(--blue); margin-bottom: 0.9rem; }
+.hero .logo svg { display: block; margin-inline: auto; }
+.hero .lede { margin-inline: auto; max-width: 38rem; margin-block-start: 1rem; }
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+  margin-block-start: 1.6rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn-primary { background: var(--blue); color: var(--base); }
+.btn-secondary { background: var(--mantle); color: var(--text); border-color: var(--surf0); }
+.btn-secondary:hover { border-color: var(--surf1); }
+.btn svg { flex-shrink: 0; }
+
+.badges { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-block-start: 1.2rem; }
+.badge {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--surf1);
+  color: var(--subtext);
+}
+
+/* -------------------------------------------------------------------- pieces */
+
+.card {
+  background: var(--mantle);
+  border: 1px solid var(--surf0);
+  border-radius: var(--radius);
+  padding: 1.3rem 1.5rem;
+}
+
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+
+.feature h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+.feature h3 svg { color: var(--blue); flex-shrink: 0; }
+.feature p { color: var(--subtext); font-size: 0.95rem; }
+
+.stores { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.store {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 1 1 15rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--surf0);
+  border-radius: var(--radius);
+  background: var(--mantle);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.store:hover { border-color: var(--blue); transform: translateY(-1px); }
+.store svg { flex-shrink: 0; color: var(--blue); }
+.store strong { display: block; font-size: 0.95rem; line-height: 1.25; }
+.store small { color: var(--subtext); }
+
+/* A 16:9 box that never overflows its column, so the embed stays responsive
+   without the page scrolling sideways on a phone. */
+.video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--surf0);
+  background: var(--mantle);
+}
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+figure { margin-block: 1.2rem; }
+figure img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius);
+  border: 1px solid var(--surf0);
+}
+figcaption { color: var(--subtext); font-size: 0.9rem; margin-block-start: 0.5rem; }
+
+/* Wide content scrolls inside its own box rather than widening the page. */
+.scroll-x { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+th, td {
+  text-align: left;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--surf0);
+  vertical-align: top;
+}
+th { font-family: var(--mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--subtext); }
+tbody tr:last-child td { border-bottom: 0; }
+
+details {
+  border: 1px solid var(--surf0);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  background: var(--mantle);
+  margin-block-end: 0.7rem;
+}
+details[open] { border-color: var(--surf1); }
+summary { cursor: pointer; font-weight: 600; list-style-position: outside; }
+summary::marker { color: var(--ovl); }
+details > *:not(summary) { margin-block-start: 0.7rem; }
+
+.note {
+  border-inline-start: 3px solid var(--blue);
+  padding: 0.2rem 0 0.2rem 1rem;
+  color: var(--subtext);
+}
+
+.ok { color: var(--green); font-weight: 600; }
+
+/* -------------------------------------------------------------------- footer */
+
+footer {
+  border-top: 1px solid var(--surf0);
+  padding-block: 1.6rem 2.2rem;
+  font-size: 0.88rem;
+  color: var(--ovl);
+}
+footer .wrap { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; align-items: center; }
+footer a { color: var(--subtext); }
+footer .spacer { margin-inline-start: auto; }
+
+@media (max-width: 640px) {
+  .topbar .wrap { min-height: 3.2rem; padding-block: 0.5rem; }
+  .nav { width: 100%; margin-inline-start: 0; justify-content: flex-start; }
+  .nav a { padding: 0.3rem 0.55rem; font-size: 0.88rem; }
+  footer .spacer { margin-inline-start: 0; }
+}

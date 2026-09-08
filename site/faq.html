@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FAQ: Auto Auth Filler</title>
+<meta name="description" content="Why the unverified app warning appears, why Gmail only, why the extension runs on all sites, whether Safari is supported, and what the 100 user limit means." />
+<meta name="application-name" content="Auto Auth Filler" />
+<link rel="canonical" href="https://autoauthfiller.com/faq" />
+<meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1e1e2e" media="(prefers-color-scheme: dark)" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Auto Auth Filler" />
+<meta property="og:title" content="FAQ: Auto Auth Filler" />
+<meta property="og:description" content="Why the unverified app warning appears, why Gmail only, why the extension runs on all sites, and whether Safari is supported." />
+<meta property="og:url" content="https://autoauthfiller.com/faq" />
+<meta property="og:image" content="https://autoauthfiller.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="A verification code being filled into a login form automatically." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="FAQ: Auto Auth Filler" />
+<meta name="twitter:description" content="Why the unverified app warning appears, why Gmail only, why the extension runs on all sites, and whether Safari is supported." />
+<meta name="twitter:image" content="https://autoauthfiller.com/og-image.png" />
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389b4fa' stroke-width='2' stroke-linecap='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>" />
+<link rel="stylesheet" href="/style.css" />
+<script src="/theme.js" defer></script>
+<script>
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode blocks storage; the system preference still works */ }
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      Auto Auth Filler
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/docs">Docs</a>
+      <a href="/faq" aria-current="page">FAQ</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/AlekPnv/auto-auth-filler">GitHub</a>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </svg>
+      <span id="theme-label">Theme</span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap narrow">
+
+    <h1>Frequently asked questions</h1>
+    <p class="lede" style="margin-top:.8rem">
+      The awkward ones first, because those are the ones worth answering honestly.
+    </p>
+
+    <section id="unverified" aria-labelledby="unv-h" style="margin-block-start:2rem">
+      <h2 id="unv-h">Why do I see an &ldquo;unverified app&rdquo; warning?</h2>
+      <details open>
+        <summary>Because verification is behind a paid annual audit</summary>
+        <p>
+          Google classifies <code>gmail.readonly</code> as a <em>restricted</em>
+          scope. Clearing that warning requires an annual third-party security
+          assessment called CASA, which costs several hundred euro a year. This is
+          a free extension with no revenue, written by one person, so that
+          assessment has not been paid for.
+        </p>
+        <p>
+          Google permits an unverified app to be published with a limit of 100
+          users. At the warning screen, click <strong>Advanced</strong> and then
+          continue.
+        </p>
+        <p>
+          On Firefox that link names <strong>allizom.org</strong> rather than Auto
+          Auth Filler. That is Mozilla's own domain: Firefox derives the OAuth
+          redirect address from it, and Google's warning names the redirect target
+          rather than the application. The address has no DNS record at all, so
+          nothing is ever sent there. The extension reads the authorisation code
+          out of the tab address locally and closes the tab.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="cap-h">
+      <h2 id="cap-h">What is the 100 user limit?</h2>
+      <details>
+        <summary>An unverified Google app can have at most 100 users, permanently</summary>
+        <p>
+          The cap is set by Google and does not reset. Once 100 Google accounts have
+          granted access, no further account can sign in until the app is fully
+          verified. If that becomes a real problem, it is a good problem, and it
+          would justify paying for the assessment.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="gmail-h">
+      <h2 id="gmail-h">Why only Gmail?</h2>
+      <details>
+        <summary>Because a second provider is a second OAuth integration</summary>
+        <p>
+          Outlook, iCloud Mail and IMAP each mean their own authentication, their
+          own API, their own review process and their own privacy disclosures. Gmail
+          was chosen because it is the one most people use. Support for another
+          provider is possible but is a substantial piece of work rather than a
+          setting.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="all-h">
+      <h2 id="all-h">Why does it run on every website?</h2>
+      <details>
+        <summary>Because a verification field can appear on any domain</summary>
+        <p>
+          Sites email one-time codes during sign-in, sign-up, password reset, email
+          confirmation and checkout. That set is not something anyone can list, so a
+          list of allowed sites would silently fail on the one site you needed.
+        </p>
+        <p>
+          What the content script actually reads is form-field metadata: the field
+          name, id, placeholder, aria-label, the associated label, the input mode,
+          the maximum length and the text of the surrounding form. It does not read
+          page content generally, does not watch what you type and sends nothing
+          anywhere. On a page where nothing scores above the detection threshold it
+          does nothing at all: no overlay, no network request.
+        </p>
+        <p>
+          The alternative, <code>activeTab</code>, only grants access after you
+          click the toolbar icon. At that point you have done as much work as
+          opening your inbox, and the extension has no reason to exist.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="pay-h">
+      <h2 id="pay-h">Will it touch my payment details?</h2>
+      <details>
+        <summary>No. Card fields are refused outright</summary>
+        <p>
+          Card fields are rejected on three signals: the browser's own
+          <code>cc-csc</code>, <code>cc-number</code> and <code>cc-exp</code>
+          autocomplete tokens, unambiguous card wording in both languages, and words
+          that mean a card security number only on a payment form. Refusal is
+          absolute rather than a low score, so no other evidence can outvote it.
+        </p>
+        <p>
+          A 3-D Secure challenge during checkout still works, because that is a
+          genuine emailed code rather than card data.
+        </p>
+      </details>
+    </section>
+
+    <section id="safari" aria-labelledby="saf-h">
+      <h2 id="saf-h">Is Safari, iPhone or iPad supported?</h2>
+      <details>
+        <summary>Safari is not supported, and will not be soon. Here is the honest reason</summary>
+        <p>
+          Safari extensions can only be built, signed and tested with Xcode, which
+          runs on macOS only. The developer of this extension works on Windows and
+          has no Mac, so a Safari build cannot be produced, let alone tested.
+          Shipping one would also require an Apple Developer membership at $99 a
+          year, and an iOS extension has to be delivered inside an App Store app.
+        </p>
+        <p>
+          There is also an unresolved technical question. Safari's support for the
+          <code>identity</code> API that this extension uses to sign in to Google is
+          inconsistent between sources, and it would have to be tested on real
+          hardware rather than researched. Until someone can do that, claiming
+          Safari support would be a guess.
+        </p>
+        <p>
+          Chrome, Edge, Brave, Opera and Vivaldi all work on macOS, so the extension
+          is usable on a Mac today, just not in Safari.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="sec-h">
+      <h2 id="sec-h">Is my mail safe?</h2>
+      <details>
+        <summary>Nothing leaves your browser, and you can verify that yourself</summary>
+        <p>
+          There is no server, no account and no analytics. The only network requests
+          go to three Google addresses, to read your own mail. Message contents are
+          held in memory only while the patterns run over them and are never written
+          to disk or logged.
+        </p>
+        <p>
+          The scope requested is <code>gmail.readonly</code>, which Google enforces:
+          the extension cannot send, delete or change anything, whatever its code
+          says. The source is public, unminified and readable exactly as shipped, so
+          none of this has to be taken on trust. Full detail is in the
+          <a href="/privacy">privacy policy</a>.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="secret-h">
+      <h2 id="secret-h">I read that the client secret is inside the extension</h2>
+      <details>
+        <summary>It is, by necessity, and PKCE is what protects the flow</summary>
+        <p>
+          Google's <em>Web application</em> client type requires a client secret at
+          the token endpoint even when PKCE is used, and Firefox forces that client
+          type because its redirect address is an HTTPS URL. The secret therefore
+          ships inside the package, where anyone who unpacks it can read it.
+        </p>
+        <p>
+          The authorisation flow uses PKCE with SHA-256, so an intercepted
+          authorisation code cannot be exchanged for a token without the verifier,
+          which never leaves the extension. Somebody with the secret could
+          impersonate this application on a Google consent screen; they could not
+          read anyone's mail, use anyone's tokens or bypass consent. This is
+          documented rather than hidden, in
+          <a href="https://github.com/AlekPnv/auto-auth-filler/blob/main/SECURITY.md">SECURITY.md</a>.
+        </p>
+      </details>
+    </section>
+
+    <section aria-labelledby="help-h">
+      <h2 id="help-h">Something is broken, or I have an idea</h2>
+      <div class="card">
+        <p>
+          Bug reports and suggestions go to
+          <a href="https://github.com/AlekPnv/auto-auth-filler/issues/new/choose">GitHub issues</a>.
+          There are forms for a bug and for a site that does not work, and they ask
+          for the <em>shape</em> of the code rather than the code itself, since the
+          shape is what determines whether a pattern matches.
+        </p>
+        <p style="margin-top:.8rem">
+          Please never paste a real verification code, a real email address or an
+          access token into a public issue.
+        </p>
+        <p style="margin-top:.8rem">
+          A security flaw should go through
+          <a href="https://github.com/AlekPnv/auto-auth-filler/security/advisories/new">private vulnerability reporting</a>
+          instead of a public issue.
+        </p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Auto Auth Filler</span>
+    <a href="/docs">Docs</a>
+    <a href="/faq">FAQ</a>
+    <a href="/privacy">Privacy</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler">Source</a>
+    <a href="https://github.com/AlekPnv/auto-auth-filler/issues">Report a problem</a>
+    <span class="spacer">MIT licence</span>
+  </div>
+</footer>
+</body>
+</html>
