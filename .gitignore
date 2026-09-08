@@ -20,3 +20,7 @@ STORE_LISTING.md
 
 # Store submission working files
 store-assets/
+
+# Local media. The demo MP4 is 52 MB; GitHub warns past 50 and blocks at 100,
+# and a binary that size can never be removed from history cleanly.
+Public Media/
