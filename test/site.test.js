@@ -195,3 +195,34 @@ test("any page mentioning Safari says plainly that it is unsupported", () => {
     }
   }
 });
+
+test("the dark palette defines every variable the light one themes", () => {
+  // The palette lives in three blocks: light on :root, dark under the system
+  // preference, and dark again under an explicit choice. A variable added to
+  // one and forgotten in another does not throw; it just renders one colour
+  // from the wrong theme, which is easy to miss and unpleasant to look at.
+  const css = fs.readFileSync(path.join(SITE, "style.css"), "utf8");
+
+  const varsIn = (re) => {
+    const m = css.match(re);
+    assert.ok(m, `could not find the block matching ${re}`);
+    return [...m[1].matchAll(/(--[a-z0-9]+)\s*:/g)].map((x) => x[1]).sort();
+  };
+
+  const light = varsIn(/:root\s*\{([\s\S]*?)\}/);
+  const mediaDark = varsIn(/:root:not\(\[data-theme="light"\]\)\s*\{([\s\S]*?)\}/);
+  const attrDark = varsIn(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\}/);
+
+  // Fonts and sizes are the same in both themes and are deliberately not repeated.
+  const NOT_THEMED = ["--mono", "--sans", "--measure", "--wide", "--radius"];
+  const themed = light.filter((v) => !NOT_THEMED.includes(v));
+
+  assert.deepStrictEqual(
+    mediaDark, attrDark,
+    "the system-preference and explicit-choice dark blocks have drifted apart",
+  );
+  assert.deepStrictEqual(
+    themed, attrDark,
+    "a themed variable is missing from the dark palette, or a dark variable has no light default",
+  );
+});
