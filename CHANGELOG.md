@@ -5,7 +5,7 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.10.3] - 2026-08-09
+## [3.10.3] - 2026-09-09
 
 ### Fixed
 
@@ -21,7 +21,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - **A single-backslash escape in a pattern is now caught by a test.** While fixing the above, `"\\bkarten?\\b"` was written as `"\bkarten?\b"`, which JavaScript reads as a backspace character rather than a word boundary. It compiles cleanly and matches nothing, silently disabling whatever it guarded. It cannot be detected after compilation either, because `RegExp.source` renders a literal backspace as `\b`, identical to the real thing. The test therefore reads `vocabulary.js` as text.
 
-## [3.10.2] - 2026-08-09
+## [3.10.2] - 2026-09-09
 
 ### Fixed
 
