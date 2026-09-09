@@ -226,3 +226,26 @@ test("the dark palette defines every variable the light one themes", () => {
     "a themed variable is missing from the dark palette, or a dark variable has no light default",
   );
 });
+
+test("a class that caps the page width also centres what it caps", () => {
+  // The home page puts .narrow on sections inside .wrap, while docs, faq and
+  // privacy put it on the same element as .wrap. In the first form .narrow had a
+  // max width and no auto margin, so those sections sat flush left in a 64rem
+  // column while the hero and the feature grid stayed centred. The page looked
+  // lopsided on any screen wider than the narrow measure, and only there, which
+  // is why it survived a review of the markup.
+  const css = fs.readFileSync(path.join(SITE, "style.css"), "utf8");
+
+  const ruleBody = (selector) => {
+    const at = css.indexOf(`\n${selector} {`);
+    assert.notStrictEqual(at, -1, `no rule found for ${selector}`);
+    return css.slice(at, css.indexOf("}", at));
+  };
+
+  for (const selector of [".wrap", ".narrow"]) {
+    assert.ok(
+      ruleBody(selector).includes("margin-inline: auto"),
+      `${selector} caps the page width but never centres what it caps`,
+    );
+  }
+});

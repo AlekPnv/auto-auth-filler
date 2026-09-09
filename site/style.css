@@ -133,7 +133,10 @@ ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45r
 .skip:focus { left: 0; }
 
 .wrap { width: min(100% - 2.5rem, var(--wide)); margin-inline: auto; }
-.narrow { max-width: var(--measure); }
+/* .narrow is used two ways: on the same element as .wrap, where .wrap does the
+   centring, and on a bare section inside .wrap on the home page. The second
+   form needs its own auto margin, or it sits flush left in a wider column. */
+.narrow { max-width: var(--measure); margin-inline: auto; }
 
 main { flex: 1; padding-block: clamp(2rem, 5vw, 3.5rem) 4rem; }
 
