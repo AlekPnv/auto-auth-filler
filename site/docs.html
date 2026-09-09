@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Documentation: Auto Auth Filler</title>
-<meta name="description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta name="description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting and how to add a language." />
 <meta name="application-name" content="Auto Auth Filler" />
 <link rel="canonical" href="https://autoauthfiller.com/docs" />
 <meta name="theme-color" content="#eff1f5" media="(prefers-color-scheme: light)" />
@@ -13,7 +13,7 @@
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="Auto Auth Filler" />
 <meta property="og:title" content="Documentation: Auto Auth Filler" />
-<meta property="og:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta property="og:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting and how to add a language." />
 <meta property="og:url" content="https://autoauthfiller.com/docs" />
 <meta property="og:image" content="https://autoauthfiller.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
@@ -21,7 +21,7 @@
 <meta property="og:image:alt" content="A verification code being filled into a login form automatically." />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Documentation: Auto Auth Filler" />
-<meta name="twitter:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting, and how to add a language." />
+<meta name="twitter:description" content="Installing Auto Auth Filler, the first run, every setting explained, troubleshooting and how to add a language." />
 <meta name="twitter:image" content="https://autoauthfiller.com/og-image.png" />
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2389b4fa' stroke-width='2' stroke-linecap='round'><rect x='3' y='11' width='18' height='11' rx='2'/><path d='M7 11V7a5 5 0 0 1 10 0v4'/></svg>" />
@@ -238,7 +238,7 @@
         people out: the Gmail search query is a gate, not a filter, so a message the
         query does not match is never fetched and no pattern further down can
         recover it. The other three are the labels that locate a code inside a
-        message, the words that identify a code field on a page, and the text on
+        message, the words that identify a code field on a page and the text on
         the submit button.
       </p>
       <p class="note">
@@ -261,8 +261,8 @@
         <table>
           <thead><tr><th>File</th><th>Responsibility</th></tr></thead>
           <tbody>
-            <tr><td><code>background.js</code></td><td>OAuth, the Gmail search, and extracting a code from a message</td></tr>
-            <tr><td><code>content.js</code></td><td>Field detection, the overlay, and filling</td></tr>
+            <tr><td><code>background.js</code></td><td>OAuth, the Gmail search and extracting a code from a message</td></tr>
+            <tr><td><code>content.js</code></td><td>Field detection, the overlay and filling</td></tr>
             <tr><td><code>vocabulary.js</code></td><td>Every language-dependent word, in one table</td></tr>
             <tr><td><code>i18n.js</code></td><td>The interface strings and the language switcher</td></tr>
             <tr><td><code>config.js</code></td><td>Your OAuth credentials. Git-ignored, never committed</td></tr>
@@ -272,7 +272,7 @@
       <p style="margin-top:1rem">
         The test suite runs with <code>node --test</code> and needs nothing
         installed. It covers code extraction against real email shapes, the PKCE
-        implementation against the RFC 7636 test vector, field scoring, and the
+        implementation against the RFC 7636 test vector, field scoring and the
         translations.
       </p>
     </section>

@@ -62,7 +62,7 @@ Beyond that:
 
 ### Option A: document it and stop. Current choice.
 
-**What:** Say plainly that Safari is unsupported, explain why, and record what a
+**What:** Say plainly that Safari is unsupported, explain why and record what a
 port would involve. No code changes.
 
 **Complexity:** none. **New technology:** none. **Apple requirements:** none.
@@ -84,7 +84,7 @@ submit to the Mac App Store and the App Store.
 to mechanical; the OAuth flow is where the work is. **New technology:** Xcode,
 a small amount of Swift for the app shell, Apple's signing and notarisation.
 **Apple requirements:** a Mac, 99 USD per year, App Store review for two
-targets, and a privacy manifest declaring data use.
+targets and a privacy manifest declaring data use.
 
 **Maintenance:** this is the part people underestimate. Every release becomes
 four submissions instead of two, each with its own review. The membership and
@@ -99,11 +99,11 @@ Not before.
 
 ### Option C: a full Apple ecosystem. Not recommended, now or later.
 
-**What:** Safari extension, a macOS companion app, an iOS app, and iCloud sync
+**What:** Safari extension, a macOS companion app, an iOS app and iCloud sync
 between them.
 
 **Complexity:** high. **New technology:** Swift and SwiftUI properly, three App
-Store review processes, and a synchronisation service.
+Store review processes and a synchronisation service.
 
 **Why it is the wrong direction, on its own terms:** sync means verification
 codes leaving the device. The single strongest claim this project can make is
