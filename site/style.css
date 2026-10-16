@@ -5,7 +5,13 @@
  * and still carrying the padlock emoji favicon that the home page had replaced
  * to satisfy Google's branding check. One file cannot drift from itself.
  *
- * The palette is unchanged from the original site. */
+ * The palette is defined here, in popup.html, in options.html and in styles.css,
+ * because a hosted site, a packaged extension and a stylesheet injected into
+ * other people's pages cannot share a file without a build step. test/design.js
+ * fails when those four disagree about what a token means.
+ *
+ * Colours only in this first block. Sizes live in the second one, so the
+ * light-against-dark parity test has nothing to filter out. */
 
 :root {
   --bg: #fbfaf9;
@@ -22,14 +28,9 @@
   --ok: #157a3a;
   --knob: #ffffff;
   --warn: #b4232a;
-  --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-
-  --radius-sm: 7px;
-
-  --measure: 46rem;
-  --wide: 64rem;
-  --radius: 10px;
+  --tint: rgba(79, 70, 229, 0.09);
+  --shadow: 0 1px 2px rgba(28, 26, 23, 0.04), 0 6px 20px rgba(28, 26, 23, 0.06);
+  --shadow-lift: 0 2px 4px rgba(28, 26, 23, 0.05), 0 12px 28px rgba(28, 26, 23, 0.1);
 }
 
 /* Dark values live once and are applied by two selectors: the system
@@ -51,6 +52,9 @@
     --ok: #56d98a;
     --knob: #f1eef5;
     --warn: #ff8d9b;
+    --tint: rgba(139, 134, 255, 0.14);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px rgba(0, 0, 0, 0.42);
   }
 }
 
@@ -69,6 +73,31 @@
     --ok: #56d98a;
     --knob: #f1eef5;
     --warn: #ff8d9b;
+    --tint: rgba(139, 134, 255, 0.14);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.3);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 28px rgba(0, 0, 0, 0.42);
+}
+
+/* Everything that is not a colour. Spacing is a 4px grid: the old stylesheet
+   picked a fresh number every time something needed a gap, which is why no two
+   sections breathed the same way. */
+:root {
+  --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+
+  --measure: 46rem;
+  --wide: 66rem;
+  --radius: 14px;
+  --radius-sm: 9px;
 }
 
 *,
@@ -78,8 +107,8 @@
 html { scroll-behavior: smooth; }
 
 /* Someone who has asked their system to reduce motion means it. Every
-   transition and the smooth scrolling above are turned off rather than
-   shortened, because a shortened animation is still an animation. */
+   transition, the scroll reveal and the smooth scrolling above are turned off
+   rather than shortened, because a shortened animation is still an animation. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *,
@@ -107,11 +136,11 @@ body {
 /* ---------------------------------------------------------------- typography */
 
 h1, h2, h3 { font-family: var(--sans); letter-spacing: -0.021em; line-height: 1.18; }
-h1 { font-size: clamp(2rem, 5.2vw, 2.9rem); font-weight: 680; letter-spacing: -0.032em; }
-h2 { font-size: clamp(1.3rem, 3vw, 1.6rem); font-weight: 650; }
-h3 { font-size: 1.04rem; font-weight: 640; }
+h1 { font-size: clamp(2.1rem, 5.4vw, 3.1rem); font-weight: 680; letter-spacing: -0.033em; }
+h2 { font-size: clamp(1.35rem, 3vw, 1.7rem); font-weight: 650; }
+h3 { font-size: 1.05rem; font-weight: 640; }
 p { text-wrap: pretty; }
-.lede { font-size: 1.12rem; color: var(--muted); }
+.lede { font-size: 1.14rem; color: var(--muted); }
 small { font-size: 0.85rem; }
 
 a { color: var(--accent); text-underline-offset: 3px; }
@@ -120,19 +149,31 @@ button:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 3px;
+  border-radius: var(--s1);
 }
 
 code {
   font-family: var(--mono);
   font-size: 0.88em;
-  background: var(--border);
+  background: var(--raised);
   overflow-wrap: anywhere;
   padding: 0.12em 0.4em;
   border-radius: 5px;
 }
 
-ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; }
+ul, ol { padding-left: var(--s5); display: flex; flex-direction: column; gap: var(--s2); }
+
+/* A label above a heading, which is how a reader finds the section they want
+   without reading every heading on the way down. */
+.eyebrow {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 660;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-block-end: var(--s2);
+}
 
 /* ------------------------------------------------------------------- skeleton */
 
@@ -142,7 +183,7 @@ ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45r
   top: 0;
   background: var(--surface);
   color: var(--text);
-  padding: 0.7rem 1.1rem;
+  padding: var(--s3) var(--s4);
   border: 1px solid var(--border-strong);
   border-radius: 0 0 var(--radius) 0;
   z-index: 100;
@@ -155,34 +196,51 @@ ul, ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45r
    form needs its own auto margin, or it sits flush left in a wider column. */
 .narrow { max-width: var(--measure); margin-inline: auto; }
 
-main { flex: 1; padding-block: clamp(2rem, 5vw, 3.5rem) 4rem; }
+main { flex: 1; padding-block: var(--s6) var(--s8); }
 
-section { margin-block-end: clamp(2.5rem, 6vw, 4rem); }
-section > * + * { margin-block-start: 0.7rem; }
+section { margin-block-end: clamp(var(--s7), 8vw, 5.5rem); }
+section > * + * { margin-block-start: var(--s4); }
+section > h2 + p { margin-block-start: var(--s3); }
+/* The eyebrow carries the gap below it, so the heading adds none above. */
+section > .eyebrow + h2 { margin-block-start: 0; }
+section > p + p { margin-block-start: var(--s3); }
+
+/* There is deliberately no scroll reveal here. A view() timeline was written
+   and then taken out: most sections on this page are taller than the viewport,
+   so an "entry" range finishes the moment the top edge appears and the fade
+   never happens. The range can be rewritten against "cover" instead, but this
+   environment forces prefers-reduced-motion, so none of it could actually be
+   watched, and unverifiable animation on content that has to stay readable is
+   a bad trade.
+
+   The motion that is here is the motion that says something: a button lifts
+   when you can click it, a card lifts when it is a link, the FAQ chevron turns
+   when the answer opens, and the overlay slides in because it appeared without
+   being asked for. */
 
 /* ----------------------------------------------------------------- site nav */
 
 .topbar {
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .topbar .wrap {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  min-height: 3.6rem;
+  gap: var(--s4);
+  min-height: 3.9rem;
   flex-wrap: wrap;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: var(--s2);
   font-family: var(--sans);
   font-weight: 660;
   color: var(--text);
@@ -191,77 +249,80 @@ section > * + * { margin-block-start: 0.7rem; }
 }
 .brand svg { color: var(--accent); flex-shrink: 0; }
 
-.nav { display: flex; gap: 0.2rem; margin-inline-start: auto; flex-wrap: wrap; }
+.nav { display: flex; gap: var(--s1); margin-inline-start: auto; flex-wrap: wrap; }
 .nav a {
   color: var(--muted);
   text-decoration: none;
   font-size: 0.92rem;
-  padding: 0.35rem 0.7rem;
-  border-radius: 8px;
+  padding: var(--s1) var(--s3);
+  border-radius: var(--radius-sm);
   transition: background 0.15s, color 0.15s;
 }
-.nav a:hover { color: var(--text); background: var(--surface); }
+.nav a:hover { color: var(--text); background: var(--raised); }
 /* aria-current is the accessible way to mark the page you are on, so the
    styling hangs off it rather than off a separate class. */
-.nav a[aria-current="page"] { color: var(--text); background: var(--surface); font-weight: 600; }
+.nav a[aria-current="page"] { color: var(--text); background: var(--raised); font-weight: 620; }
 
 .theme-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--s1);
   font: inherit;
   font-size: 0.8rem;
   color: var(--muted);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.32rem 0.7rem;
+  padding: var(--s1) var(--s3);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+.theme-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface); }
 .theme-toggle svg { width: 14px; height: 14px; }
 
 /* ---------------------------------------------------------------------- hero */
 
-.hero { text-align: center; padding-block: clamp(1rem, 4vw, 2.5rem) 0; }
-.hero .logo { color: var(--accent); margin-bottom: 0.9rem; }
+.hero { text-align: center; padding-block: var(--s6) 0; }
+.hero .logo { color: var(--accent); margin-bottom: var(--s5); }
 .hero .logo svg { display: block; margin-inline: auto; }
-.hero .lede { margin-inline: auto; max-width: 38rem; margin-block-start: 1rem; }
+.hero h1 { margin-inline: auto; max-width: 20ch; }
+.hero .lede { margin-inline: auto; max-width: 40rem; margin-block-start: var(--s5); }
 
 .cta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.7rem;
+  gap: var(--s3);
   justify-content: center;
-  margin-block-start: 1.6rem;
+  margin-block-start: var(--s6);
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.2rem;
+  gap: var(--s2);
+  padding: var(--s3) var(--s5);
   border-radius: var(--radius-sm);
   text-decoration: none;
   font-weight: 620;
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   border: 1px solid transparent;
-  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .btn:hover { transform: translateY(-1px); }
-.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow); }
+.btn-primary:hover { box-shadow: var(--shadow-lift); }
 .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border); }
-.btn-secondary:hover { border-color: var(--border-strong); }
+.btn-secondary:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
 .btn svg { flex-shrink: 0; }
 
-.badges { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-block-start: 1.2rem; }
+.badges { display: flex; flex-wrap: wrap; gap: var(--s2); justify-content: center; margin-block-start: var(--s5); }
 .badge {
   font-size: 0.78rem;
   font-weight: 560;
-  padding: 0.25rem 0.7rem;
+  padding: var(--s1) var(--s3);
   border-radius: 999px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--muted);
 }
 
@@ -271,32 +332,56 @@ section > * + * { margin-block-start: 0.7rem; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.3rem 1.5rem;
+  padding: var(--s5) var(--s5);
+  box-shadow: var(--shadow);
 }
 
-.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.grid {
+  display: grid;
+  gap: var(--s4);
+  /* 17rem rather than 15rem so six cards land as three and three at full width
+     instead of four and two, which looked like something had gone wrong. */
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
 
-.feature h3 { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
-.feature h3 svg { color: var(--accent); flex-shrink: 0; }
+.feature { display: flex; flex-direction: column; }
+.feature h3 { margin-block-end: var(--s2); }
 .feature p { color: var(--muted); font-size: 0.95rem; }
 
-.stores { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+/* The icon sits in a tinted square above the title rather than inline with it.
+   Inline, the icon and the first word compete; stacked, the card has an obvious
+   reading order. */
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--tint);
+  color: var(--accent);
+  margin-block-end: var(--s4);
+  flex-shrink: 0;
+}
+
+.stores { display: flex; flex-wrap: wrap; gap: var(--s4); }
 .store {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  flex: 1 1 15rem;
-  padding: 0.8rem 1rem;
+  gap: var(--s3);
+  flex: 1 1 17rem;
+  padding: var(--s4) var(--s5);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   text-decoration: none;
-  transition: border-color 0.15s, transform 0.15s;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
-.store:hover { border-color: var(--accent); transform: translateY(-1px); }
+.store:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-lift); }
 .store svg { flex-shrink: 0; color: var(--accent); }
-.store strong { display: block; font-size: 0.95rem; line-height: 1.25; }
+.store strong { display: block; font-size: 0.96rem; line-height: 1.3; }
 .store small { color: var(--muted); }
 
 /* A 16:9 box that never overflows its column, so the embed stays responsive
@@ -308,66 +393,119 @@ section > * + * { margin-block-start: 0.7rem; }
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 
-figure { margin-block: 1.2rem; }
+figure { margin-block: var(--s5); }
 figure img {
   width: 100%;
   height: auto;
   display: block;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
-figcaption { color: var(--muted); font-size: 0.9rem; margin-block-start: 0.5rem; }
+figcaption { color: var(--muted); font-size: 0.9rem; margin-block-start: var(--s3); }
 
 /* Wide content scrolls inside its own box rather than widening the page. */
-.scroll-x { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.scroll-x {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
 th, td {
   text-align: left;
-  padding: 0.65rem 0.9rem;
+  padding: var(--s3) var(--s4);
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-th { font-size: 0.85rem; font-weight: 620; color: var(--muted); }
+th {
+  font-size: 0.85rem;
+  font-weight: 620;
+  color: var(--muted);
+  background: var(--raised);
+  white-space: nowrap;
+}
 tbody tr:last-child td { border-bottom: 0; }
 
 details {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.9rem 1.1rem;
+  padding: var(--s4) var(--s5);
   background: var(--surface);
-  margin-block-end: 0.7rem;
+  margin-block-end: var(--s3);
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s;
 }
+details:hover { border-color: var(--border-strong); }
 details[open] { border-color: var(--border-strong); }
-summary { cursor: pointer; font-weight: 600; list-style-position: outside; }
-summary::marker { color: var(--muted); }
-details > *:not(summary) { margin-block-start: 0.7rem; }
+summary {
+  cursor: pointer;
+  font-weight: 620;
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+/* The default triangle sits on the text baseline and cannot be positioned. A
+   chevron drawn here can, and it turns to point down when the entry opens. */
+summary::-webkit-details-marker { display: none; }
+summary::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-start: auto;
+  margin-block-start: 0.4rem;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+details[open] > summary::after { transform: rotate(45deg); }
+details > *:not(summary) { margin-block-start: var(--s3); }
 
 .note {
   border-inline-start: 3px solid var(--accent);
-  padding: 0.2rem 0 0.2rem 1rem;
+  background: var(--tint);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: var(--s3) var(--s4);
   color: var(--muted);
 }
 
-.ok { color: var(--ok); font-weight: 600; }
+.ok { color: var(--ok); font-weight: 620; }
 
 /* -------------------------------------------------------------------- footer */
 
 footer {
   border-top: 1px solid var(--border);
-  padding-block: 1.6rem 2.2rem;
+  padding-block: var(--s6) var(--s7);
   font-size: 0.88rem;
   color: var(--muted);
+  background: var(--surface);
 }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; align-items: center; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s5); align-items: center; }
 footer a { color: var(--muted); }
+footer a:hover { color: var(--text); }
 footer .spacer { margin-inline-start: auto; }
 
+/* On a phone the two install buttons sat centred at two different widths,
+   which reads as a mistake rather than a choice. Full width and stacked is the
+   shape people expect, and it gives a bigger tap target. */
+@media (max-width: 480px) {
+  .cta-row { flex-direction: column; align-items: stretch; }
+  .btn { justify-content: center; }
+}
+
 @media (max-width: 640px) {
-  .topbar .wrap { min-height: 3.2rem; padding-block: 0.5rem; }
+  .topbar .wrap { min-height: 3.4rem; padding-block: var(--s2); }
   .nav { width: 100%; margin-inline-start: 0; justify-content: flex-start; }
-  .nav a { padding: 0.3rem 0.55rem; font-size: 0.88rem; }
+  .nav a { padding: var(--s1) var(--s2); font-size: 0.88rem; }
+  .card { padding: var(--s4); }
+  details { padding: var(--s4); }
   footer .spacer { margin-inline-start: 0; }
 }

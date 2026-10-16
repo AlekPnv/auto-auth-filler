@@ -108,7 +108,7 @@
     <h2>What is stored, and where</h2>
     <p>Everything is stored by your browser, on your device.</p>
     <div class="tablewrap">
-      <table>
+      <div class="scroll-x"><table>
         <thead><tr><th>Data</th><th>Where</th><th>Removed when</th></tr></thead>
         <tbody>
           <tr><td>Access token (short-lived)</td><td>Browser session storage</td><td>The browser closes</td></tr>
@@ -116,7 +116,7 @@
           <tr><td>Your settings</td><td>Browser local storage</td><td>You uninstall the extension</td></tr>
           <tr><td>A fingerprint of codes already tried on a site</td><td>Browser local storage</td><td>Ten minutes after the attempt</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
     <p>
       The refresh token is kept in local storage deliberately, because it must
@@ -226,7 +226,7 @@
       archived, cached, backed up or logged, so there is no copy to delete later.
     </p>
     <p>Everything the extension does keep is listed here in full:</p>
-    <table>
+    <div class="scroll-x"><table>
       <thead>
         <tr><th>What is kept</th><th>Retained for</th><th>Deleted</th></tr>
       </thead>
@@ -237,7 +237,7 @@
         <tr><td>Your settings</td><td>Until you uninstall</td><td>On uninstall</td></tr>
         <tr><td>Fingerprints of codes already tried</td><td>Ten minutes</td><td>Automatically after ten minutes, or on uninstall</td></tr>
       </tbody>
-    </table>
+    </table></div>
     <p style="margin-top:1rem">
       <strong>How to delete everything yourself.</strong> Any one of these removes
       all Google user data the extension holds, immediately and without contacting
