@@ -644,3 +644,207 @@ test("the extension interface carries no emoji", async (t) => {
     });
   }
 });
+
+test("the bug report cannot carry a code", async (t) => {
+  // detectionReport() ends up in a public GitHub issue. If it ever read a
+  // field's value, the one thing a user must never paste into a public issue
+  // would be pasted there for them, automatically, every single time.
+  const src = fs.readFileSync(path.join(ROOT, "content.js"), "utf8");
+  const start = src.indexOf("function detectionReport()");
+  assert.notStrictEqual(start, -1, "detectionReport has gone");
+  const body = src.slice(start, src.indexOf("\n}", start));
+
+  await t.test("it never reads a field value", () => {
+    assert.ok(!body.includes(".value"), "detectionReport reads a field value");
+  });
+
+  await t.test("it never reads the page's text", () => {
+    for (const reader of ["textContent", "innerText", "innerHTML"]) {
+      assert.ok(!body.includes(reader), `detectionReport reads page text via ${reader}`);
+    }
+  });
+
+  await t.test("it reads the attributes a detection bug is reproducible from", () => {
+    for (const attr of ["placeholder", "autocomplete", "maxLength", "inputMode", "score"]) {
+      assert.ok(body.includes(attr), `the report omits ${attr}, which is needed to reproduce`);
+    }
+  });
+
+  await t.test("the popup warns against pasting a real code", () => {
+    const popup = fs.readFileSync(path.join(ROOT, "popup.js"), "utf8");
+    assert.ok(
+      popup.includes("never paste a real code"),
+      "the prefilled issue should say not to paste a real code",
+    );
+  });
+});
+
+test("Italian mail yields its code", async (t) => {
+  // Italian builds these as "codice di X" rather than compounding, so a word
+  // boundary behaves in a way it does not in German. The trap here is a
+  // different one: "codice di sicurezza" is a card's CVV on a payment form and
+  // an ordinary one-time code everywhere else.
+  const cases = [
+    ["plain", "Il tuo codice di verifica e 482913", "482913"],
+    ["after a colon", "Codice di accesso: 55213", "55213"],
+    // "codice monouso" is a phrase that can only mean a one-time code, so a
+    // code with no digits in it is trusted after one.
+    ["letters only", "Il tuo codice monouso e 9KD2M4", "9KD2M4"],
+    ["mid sentence", "Ecco il codice di conferma 730192 per accedere", "730192"],
+    ["hyphenated", "Il tuo codice temporaneo: 41-7823", "417823"],
+  ];
+
+  for (const [name, text, expected] of cases) {
+    await t.test(name, () => {
+      assert.strictEqual(bg.extractOTP(text), expected);
+    });
+  }
+});
+
+test("Italian reaches the parts of the system that need a language", async (t) => {
+  const terms = bg.call("AAF_TERMS");
+
+  await t.test("the Gmail query searches Italian wording", () => {
+    // Without this the search never returns an Italian message at all, and no
+    // amount of good extraction downstream can help.
+    assert.match(terms.gmailQuery, /codice di verifica/);
+  });
+
+  await t.test("an Italian submit button is recognised", () => {
+    for (const word of ["conferma", "accedi", "invia"]) {
+      assert.ok(terms.submitButtons.includes(word), `"${word}" is missing`);
+    }
+  });
+
+  await t.test("codice di sicurezza is treated as ambiguous, not as a code name", () => {
+    // The same collision as Sicherheitscode. If it were in cardField it would
+    // refuse real one-time code fields; if it were absent it would fill a CVV.
+    assert.match(terms.cardAmbiguous.source, /sicurezza/);
+    assert.ok(!/sicurezza/.test(terms.cardField.source),
+      "an unconditional refusal here would break real Italian code fields");
+  });
+
+  await t.test("Italian card wording is refused outright", () => {
+    for (const probe of ["numero carta", "scadenza", "titolare della carta"]) {
+      assert.match(probe, terms.cardField, `"${probe}" should be refused`);
+    }
+  });
+});
+
+test("a sign-in link is offered when no code exists, and only then", async (t) => {
+  // Some services mail a link instead of a code. Opening a link out of an email
+  // is the most phishing-adjacent thing this extension could do, so the guards
+  // matter more than the feature: https only, the anchor's own text has to
+  // invite a sign-in, and the sender has to match the site.
+  const html = (href, text) =>
+    `<p>Hello</p><p><a href="${href}">${text}</a></p><p>Thanks</p>`;
+
+  const mail = (id, from, href, text, extra = "", subject = "Sign in to Example") => ({
+    id,
+    internalDate: String(Date.now() - 20000),
+    snippet: "",
+    payload: {
+      mimeType: "multipart/alternative",
+      headers: [
+        { name: "Subject", value: subject },
+        { name: "From", value: from },
+      ],
+      parts: [
+        {
+          mimeType: "text/html",
+          body: { data: Buffer.from(html(href, text) + extra).toString("base64url") },
+        },
+      ],
+    },
+  });
+
+  function withMessages(messages) {
+    const instance = loadBackground();
+    instance.call(`
+      fetchGmail = async (endpoint) => {
+        if (endpoint.startsWith("messages?")) {
+          return { messages: ${JSON.stringify(messages.map((m) => ({ id: m.id })))} };
+        }
+        const id = endpoint.split("/")[1];
+        return ${JSON.stringify(Object.fromEntries(messages.map((m) => [m.id, m])))}[id];
+      };
+      getAuthToken = async () => "test-token";
+    `);
+    return instance;
+  }
+
+  const run = (messages, host = "example.com") =>
+    withMessages(messages).call(`findLatestOTP({ maxOTPAge: 10, siteHost: "${host}" })`);
+
+  await t.test("a matching sender's sign-in link is offered", async () => {
+    const result = await run([
+      mail("a", "Example <no-reply@example.com>",
+           "https://example.com/magic?t=abc123def456", "Sign in"),
+    ]);
+    assert.strictEqual(result.otp, null, "there is no code in this mail");
+    assert.strictEqual(result.magicLink, "https://example.com/magic?t=abc123def456");
+    assert.strictEqual(result.linkHost, "example.com");
+  });
+
+  await t.test("a link from an unrelated sender is never offered", async () => {
+    // The sender check is the only thing between the user and a link out of
+    // their mail, so a message that fails it cannot win on anything else.
+    const result = await run([
+      // The subject must not name the site either. A service naming itself
+      // there is a deliberate match path, for senders like Battle.net that
+      // mail from an unrelated domain.
+      mail("a", "Somebody Else <no-reply@totally-different.net>",
+           "https://totally-different.net/magic?t=abc123", "Sign in", "",
+           "Sign in to your account"),
+    ]);
+    assert.strictEqual(result.magicLink, undefined);
+  });
+
+  await t.test("an insecure link is never offered", async () => {
+    const result = await run([
+      mail("a", "Example <no-reply@example.com>",
+           "http://example.com/magic?t=abc123def456", "Sign in"),
+    ]);
+    assert.strictEqual(result.magicLink, undefined);
+  });
+
+  await t.test("an ordinary link is not mistaken for a sign-in link", async () => {
+    const result = await run([
+      mail("a", "Example <no-reply@example.com>",
+           "https://example.com/unsubscribe?u=99", "Unsubscribe"),
+    ]);
+    assert.strictEqual(result.magicLink, undefined);
+  });
+
+  await t.test("a real code still wins over a link", async () => {
+    // A link is the fallback. Returning one while a usable code sits in the
+    // same inbox would be a worse answer and a bigger risk.
+    const result = await run([
+      mail("a", "Example <no-reply@example.com>",
+           "https://example.com/magic?t=abc123def456",
+           "Sign in", "<p>Your verification code is 889213</p>"),
+    ]);
+    assert.strictEqual(result.otp, "889213");
+    assert.strictEqual(result.magicLink, undefined);
+  });
+
+  await t.test("a URL never leaks into code extraction", async () => {
+    // extractLinks reads the HTML; extractOTP reads the flattened text, which
+    // has had every tag removed. A tracking parameter full of alphanumerics is
+    // exactly the shape the catch-all patterns match, and a Gecko build date
+    // already proved what that costs.
+    const result = await run([
+      mail("a", "Example <no-reply@example.com>",
+           "https://example.com/go?token=4829135550", "Sign in"),
+    ]);
+    assert.strictEqual(result.otp, null, "a tracking parameter is not a code");
+  });
+
+  await t.test("the overlay offers the link rather than following it", () => {
+    const src = fs.readFileSync(path.join(ROOT, "content.js"), "utf8");
+    assert.ok(src.includes("details.magicLink"), "the overlay ignores a link result");
+    assert.ok(src.includes("noopener,noreferrer"), "the link opens without noopener");
+    assert.ok(!src.includes("location.href = details.magicLink"),
+      "the extension must never navigate to the link on its own");
+  });
+});

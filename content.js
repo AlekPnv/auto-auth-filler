@@ -366,6 +366,28 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
   const statusEl = overlay.querySelector(".aaf-status");
   const actionsEl = overlay.querySelector(".aaf-actions");
 
+  // A sign-in link instead of a code. Offered, never followed: an extension
+  // that opens links out of your mail on its own is a different and much worse
+  // piece of software. The host is shown because the user is the last check.
+  if (!error && !otp && details.magicLink) {
+    statusEl.textContent = T("overlay.linkFound", {
+      sender: truncate(details.sender || details.subject || "", 26),
+    });
+    actionsEl.textContent = "";
+
+    const openBtn = document.createElement("button");
+    openBtn.className = "aaf-btn aaf-fill";
+    openBtn.textContent = T("overlay.openLink", { host: details.linkHost });
+    openBtn.addEventListener("click", () => {
+      window.open(details.magicLink, "_blank", "noopener,noreferrer");
+    });
+
+    actionsEl.appendChild(openBtn);
+    actionsEl.hidden = false;
+    AAF_I18N.apply(overlay);
+    return;
+  }
+
   // Either nothing arrived, or the only thing that did is a code this page has
   // already rejected. Both mean the same thing: keep waiting for a newer one.
   const alreadyTried = wasAttempted(otp);
@@ -703,12 +725,16 @@ function findSubmitButton(nearInput) {
   return null;
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "OTP_RESULT") {
     clearTimeout(searchTimeout);
     setOverlayResult(msg.otp, msg.subject, msg.ageMins, msg.error, msg);
   }
   if (msg.type === "FORCE_LOOKUP") forceLookup();
+  if (msg.type === "DETECTION_REPORT") {
+    sendResponse(detectionReport());
+    return false;
+  }
   if (msg.type === "AUTH_READY") {
     if (overlay) {
       setOverlaySearching();
@@ -816,6 +842,42 @@ function currentFieldValue(inputs) {
 // hidden unless the level is turned on, so it costs an ordinary user nothing.
 function trace(message) {
   console.debug("[Auto Auth Filler] " + message);
+}
+
+// What the scorer saw, for a bug report.
+//
+// Attributes only. Never a value, never the page's text, never a code. A
+// detection bug is almost always reproducible from a field's metadata alone,
+// and the alternative is asking people to describe that by hand, which gets
+// you "it didn't work on my bank".
+function detectionReport() {
+  const SKIP = ["hidden", "submit", "button", "checkbox", "radio", "file", "image"];
+  const fields = [];
+
+  for (const el of document.querySelectorAll("input")) {
+    const type = (el.type || "text").toLowerCase();
+    if (SKIP.includes(type) || !isUsable(el)) continue;
+    fields.push({
+      type,
+      name: el.name || "",
+      id: el.id || "",
+      placeholder: el.getAttribute("placeholder") || "",
+      label: el.getAttribute("aria-label") || "",
+      autocomplete: el.getAttribute("autocomplete") || "",
+      maxLength: el.maxLength > 0 ? el.maxLength : null,
+      inputMode: el.inputMode || "",
+      score: scoreInput(el),
+    });
+    if (fields.length >= 12) break;
+  }
+
+  const chosen = findOTPInputs();
+  return {
+    host: window.location.hostname,
+    threshold: CONFIDENCE_THRESHOLD,
+    detected: chosen ? chosen.length : 0,
+    fields,
+  };
 }
 
 // Everything init() does, minus the gates. The relevance check still applies,

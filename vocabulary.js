@@ -83,6 +83,14 @@ globalThis.AAF_VOCAB = {
 
     // Gmail query terms. Subject terms are matched against the subject only;
     // body terms are quoted phrases searched anywhere in the message.
+    // Anchor text that invites a sign-in, for mail carrying a link
+    // instead of a code.
+    linkLabels: [
+      "sign in", "signin", "sign-in", "log in", "login", "log-in",
+      "verify your email", "verify my email", "confirm your email",
+      "confirm my email", "magic link", "continue to", "activate",
+    ],
+
     mailSubjectTerms: [
       "code", "verify", "security", "login", "confirmation",
       "authentication", "account",
@@ -137,8 +145,71 @@ globalThis.AAF_VOCAB = {
 
     submitButtons: ["weiter", "bestätigen", "anmelden", "fortfahren"],
 
+    // Anchor text that invites a sign-in, for mail carrying a link
+    // instead of a code.
+    linkLabels: [
+      "anmelden", "einloggen", "e-mail bestätigen",
+      "email bestätigen", "konto aktivieren", "weiter zu",
+    ],
+
     mailSubjectTerms: [],
     mailBodyTerms: ["Einmalcode", "Authentifizierung", "Bestätigungscode"],
+  },
+
+  it: {
+    // Italian builds these as "codice di X" rather than compounding, so a word
+    // boundary works here in a way it does not in German.
+    mailLabels: [
+      "codice\\s*di\\s*verifica", "codice\\s*di\\s*sicurezza",
+      "codice\\s*di\\s*autenticazione", "codice\\s*di\\s*accesso",
+      "codice\\s*di\\s*conferma", "codice\\s*di\\s*convalida",
+      "codice\\s*temporaneo", "password\\s*temporanea",
+      "codice\\s*monouso", "codice\\s*usa\\s*e\\s*getta",
+      "codice\\s*otp", "codice\\s*a\\s*due\\s*fattori",
+    ],
+
+    genericLabels: ["codice"],
+
+    fieldStrong: ["\\b(?:otp|codice\\s*monouso|codice\\s*temporaneo)\\b"],
+    fieldMedium: ["\\b(?:codice|verifica|convalida)\\b"],
+    fieldWeak: ["\\b(?:verific|conferm|sicurezza|accesso)"],
+
+    formStrong: ["\\b(?:otp|codice\\s*monouso|verifica\\s*in\\s*due\\s*passaggi)\\b"],
+    formWeak: ["\\b(?:codice|conferma|verifica)\\b"],
+
+    passwordFieldOk: ["\\b(?:otp|codice\\s*monouso)\\b", "codice\\s*di\\s*verifica"],
+
+    // A card PIN is not an emailed code.
+    payment: [
+      "\\b(?:carta|pagamento|iban|cvv|cvc)\\b", "\\bpagare\\b",
+      "\\bpaga\\b", "numero\\s*(?:della\\s*)?carta",
+    ],
+
+    cardField: [
+      "\\b(?:cvv|cvc|csc|cvn)\\b",
+      "numero\\s*(?:della\\s*)?carta", "numerocarta",
+      "\\bscadenza\\b", "data\\s*di\\s*scadenza",
+      "titolare\\s*(?:della\\s*)?carta", "intestatario",
+    ],
+
+    // "codice di sicurezza" is the CVV on a payment form and an ordinary
+    // one-time code anywhere else. Same trap as Sicherheitscode in German.
+    cardAmbiguous: ["codice\\s*di\\s*sicurezza"],
+
+    submitButtons: [
+      "verifica", "verificare", "conferma", "confermare",
+      "continua", "avanti", "invia", "accedi", "entra", "procedi", "fatto",
+    ],
+
+    // Anchor text that invites a sign-in, for mail carrying a link
+    // instead of a code.
+    linkLabels: [
+      "accedi", "conferma la tua email", "conferma email",
+      "attiva account", "continua su",
+    ],
+
+    mailSubjectTerms: [],
+    mailBodyTerms: ["codice di verifica", "codice monouso", "codice temporaneo"],
   },
 
   // bg: {
@@ -186,5 +257,6 @@ globalThis.AAF_TERMS = {
   cardAmbiguous: aafPattern("cardAmbiguous"),
 
   submitButtons: aafCollect("submitButtons"),
+  linkLabels: aafCollect("linkLabels"),
   gmailQuery: aafGmailQuery(),
 };

@@ -712,6 +712,47 @@ function extractOTP(text, maxLen, exactLength) {
   return candidates[0] ?? null;
 }
 
+const LINK_LABELS = globalThis.AAF_TERMS.linkLabels;
+
+// Anchor targets, read from the HTML before it is flattened into text.
+//
+// Kept well away from extractOTP on purpose. A URL is mostly long alphanumeric
+// runs, and handing those to the code patterns is exactly how a tracking
+// parameter turns into a "code". That is the same failure that made a browser
+// build number look like one.
+function extractLinks(html) {
+  if (!html) return [];
+  const links = [];
+  const re = /<a\b[^>]*href\s*=\s*["'](https:\/\/[^"'\s]{10,500})["'][^>]*>([\s\S]{0,300}?)<\/a>/gi;
+  for (const m of html.matchAll(re)) {
+    links.push({ url: m[1], text: stripHtml(m[2]).trim().toLowerCase().slice(0, 120) });
+    if (links.length >= 40) break;
+  }
+  return links;
+}
+
+// A sign-in link, for the services that mail a link rather than a code.
+//
+// Narrow on purpose. Opening a link out of an email is the most
+// phishing-adjacent thing this extension could do, so three things have to hold
+// at once: the scheme is https, the anchor's own text invites a sign-in, and
+// the caller has already matched the sender against the site. Even then it is
+// only ever offered, never followed.
+function findMagicLink(payload) {
+  const html = extractBody(payload, "text/html");
+  for (const { url, text } of extractLinks(html)) {
+    if (!LINK_LABELS.some((label) => text.includes(label))) continue;
+    try {
+      const host = new URL(url).hostname;
+      // Shown to the user before they click, so it has to be the real one.
+      return { url, host };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 async function findLatestOTP(settings = {}) {
   const maxAge = settings.maxOTPAge ?? 10;
 
@@ -761,6 +802,10 @@ async function findLatestOTP(settings = {}) {
   const skip = new Set(settings.skip ?? []);
   let skipped = 0;
 
+  // A sign-in link from a sender that matches this site, held in case no code
+  // turns up anywhere.
+  let magic = null;
+
   // Why nothing came back is worth reporting. From outside, mail that never
   // arrived, mail with no code in it and a code that does not fit the field
   // all look identical, and each needs a different fix.
@@ -803,6 +848,21 @@ async function findLatestOTP(settings = {}) {
       if (settings.exactLength && extractOTP(combined, settings.inputMaxLen)) {
         wrongLength = true;
       }
+
+      // No code, but the sender matches: this may be one of the services that
+      // mails a link instead. Held rather than returned, because a real code
+      // further down the list is always the better answer.
+      if (!magic && messageMatchesSite(pageTokens, from, subject)) {
+        const link = findMagicLink(msg.payload);
+        if (link) {
+          magic = {
+            ...link,
+            subject,
+            sender: from.replace(/<[^>]*>/, "").replace(/"/g, "").trim() || from,
+            ageMins: Math.round(ageMins),
+          };
+        }
+      }
       continue;
     }
 
@@ -818,6 +878,21 @@ async function findLatestOTP(settings = {}) {
     // looking: a matching message further down is the better answer even though
     // it is older.
     if (!unmatched) unmatched = { ...result, matchesSite: false };
+  }
+
+  // A link from the right sender beats a code from the wrong one. The sender
+  // check is the only thing standing between the user and a link out of an
+  // email, so a message that failed it cannot win here.
+  if (magic) {
+    return {
+      otp: null,
+      magicLink: magic.url,
+      linkHost: magic.host,
+      subject: magic.subject,
+      sender: magic.sender,
+      ageMins: magic.ageMins,
+      matchesSite: true,
+    };
   }
 
   if (unmatched) return unmatched;

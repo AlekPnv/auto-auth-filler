@@ -22,6 +22,7 @@ const btnCopy       = $("btn-copy");
 const btnLogin      = $("btn-login");
 const btnLogout     = $("btn-logout");
 const btnOptions    = $("btn-options");
+const btnReport     = $("btn-report");
 
 // The popup has no page of its own, so the site to compare a message against
 // has to come from the active tab. Without it the site check inside
@@ -164,7 +165,78 @@ btnLogout.addEventListener("click", async () => {
   await checkAuth();
 });
 
+
+const ISSUE_URL = "https://github.com/AlekPnv/auto-auth-filler/issues/new";
+
+// A detection bug is reproducible from the field metadata and almost nothing
+// else, so the report gathers that rather than asking the user to describe a
+// form they did not write. Nothing here can carry a code: detectionReport()
+// reads attributes and never values.
+function issueBody(report, version) {
+  const lines = [
+    "### What went wrong",
+    "",
+    "<!-- Did it fill the wrong field, the wrong code, or do nothing at all?",
+    "     Please never paste a real code or email address into a public issue. -->",
+    "",
+    "### Detection report",
+    "",
+  ];
+
+  if (!report) {
+    lines.push("The page could not be inspected. This happens on browser pages",
+               "such as about: and chrome://, and on a tab opened before the",
+               "extension was installed or updated.");
+  } else {
+    lines.push("Site: `" + report.host + "`",
+               "",
+               "Fields examined: " + report.fields.length +
+               ", detected: " + report.detected +
+               ", threshold: " + report.threshold,
+               "",
+               "| type | name | id | placeholder | aria-label | autocomplete | maxlength | inputmode | score |",
+               "| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+    for (const f of report.fields) {
+      const cell = (v) => (v === null || v === "" ? " " : String(v).replace(/\|/g, "/").slice(0, 40));
+      lines.push("| " + [f.type, f.name, f.id, f.placeholder, f.label, f.autocomplete,
+                         f.maxLength, f.inputMode, f.score].map(cell).join(" | ") + " |");
+    }
+  }
+
+  lines.push("", "Extension " + version + ", " + navigator.userAgent);
+  return lines.join("\n");
+}
+
+async function reportProblem() {
+  const manifest = chrome.runtime.getManifest();
+  let report = null;
+
+  try {
+    const tabs = await new Promise((resolve) =>
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve));
+    const tabId = tabs?.[0]?.id;
+    if (tabId != null) {
+      report = await new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabId, { type: "DETECTION_REPORT" }, (res) => {
+          // A page with no content script leaves lastError set. Reading it is
+          // what stops the browser logging an unchecked-error warning.
+          void chrome.runtime.lastError;
+          resolve(res ?? null);
+        });
+      });
+    }
+  } catch {
+    report = null;
+  }
+
+  const url = ISSUE_URL + "?labels=detection&body=" +
+    encodeURIComponent(issueBody(report, manifest.version));
+  chrome.tabs.create({ url });
+  window.close();
+}
+
 btnFetch.addEventListener("click", fetchCode);
+btnReport.addEventListener("click", reportProblem);
 
 btnOptions.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();

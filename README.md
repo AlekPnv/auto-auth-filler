@@ -251,7 +251,7 @@ the OAuth flow end to end. Those need a browser and a real account.
 
 ## Adding a language
 
-English and German are supported. Every language-dependent word lives in
+English, German and Italian are supported. Every language-dependent word lives in
 `vocabulary.js`, and adding one means editing that file and nothing else.
 
 Language matters in four places, and the first is the one that catches people

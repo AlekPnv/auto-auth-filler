@@ -5,6 +5,36 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0] - 2026-10-16
+
+### Added
+
+- **Italian, in the interface and in the detection.** The whole interface is translated, and code detection now reads Italian mail and Italian forms alongside English and German, whatever the interface is set to.
+
+  Italian writes these as "codice di X" rather than gluing words together, so a word boundary behaves in a way it does not in German. It brings its own trap instead: `codice di sicurezza` is a card's security number on a checkout page and an ordinary one-time code everywhere else, which is the same collision `Sicherheitscode` caused in 3.10.3. It is listed as ambiguous rather than refused, so a real Italian code field still works while a CVV beside it does not.
+
+- **"Not this one" in the overlay.** The lookup ranks every candidate and returns exactly one. When two services mail inside the same minute, or one service sends a password reset alongside a sign-in code, the ranking picks wrong and only the user can tell. The button pushes that code onto a skip list and asks again.
+
+  Without it the next lookup hands back the same code, because it is still the newest match and every tiebreak still lands on it.
+
+- **A keyboard shortcut, `Alt+Shift+V`.** It skips the score threshold, the cooldown and the already-searching guard, because someone pressing a key is better evidence that a code is wanted than any score this extension computes. The blocklist still applies: a domain silenced on purpose stays silent.
+
+- **Sign-in links.** Some services mail a link instead of a code. One is now offered when no code is found, and never otherwise.
+
+  Opening a link out of an email is the most phishing-adjacent thing this extension could do, so three things have to hold at once: the scheme is https, the anchor's own text invites a sign-in, and the sender already matched the site. Even then the link is only ever offered, never followed, and the host is shown on the button so the last check is a human one.
+
+  Link URLs are read from the HTML and deliberately kept out of the text that code extraction sees. A URL is mostly long alphanumeric runs, which is exactly the shape the catch-all patterns match, and a browser build number already proved in 3.10.4 what that costs.
+
+- **A one-click bug report.** The popup gathers what the detection actually saw on the page, every candidate field's name, id, placeholder, label, autocomplete, maxlength, input mode and score, and opens a prefilled issue.
+
+  It reads attributes only. Never a value, never the page's text, never a code, and a test fails if that ever changes, because this ends up in a public issue.
+
+### Changed
+
+- **The popup says why it found nothing.** The lookup has always worked out a reason and the overlay has always shown it; the popup dropped it and said "no code". "No mail matched the search" and "a code was found but it does not fit 6 boxes" need completely different things from the user.
+
+- **No more emoji in the extension interface.** The overlay's icon was a padlock, the copy button was a clipboard that turned into a green tick. Those were the brand shape the project stopped using in 3.11.0, and pictures doing words' jobs in the one part of the interface that is translated. A test now fails on any emoji in the extension, which the site has been checked for since the Google branding review and the extension never was.
+
 ## [3.11.0] - 2026-10-16
 
 ### Added
