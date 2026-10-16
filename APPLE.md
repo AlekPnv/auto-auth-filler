@@ -56,7 +56,7 @@ Beyond that:
 - `<all_urls>` behaves differently. Safari asks the user per site and offers
   "allow for one day" rather than granting broadly at install, so the detection
   overlay would simply not appear until permission is granted for that site.
-  That is a real change in how the product feels, not just a permission dialog.
+  That is a real change in how the product feels rather than one more dialog.
 
 ## Options
 
@@ -107,8 +107,8 @@ Store review processes and a synchronisation service.
 
 **Why it is the wrong direction, on its own terms:** sync means verification
 codes leaving the device. The single strongest claim this project can make is
-that nothing does. Adding a backend to store one-time codes in order to have a
-tidier ecosystem story would trade away the thing that makes the extension
+that nothing does. Adding a backend to store one-time codes to have a tidier
+ecosystem story would trade away the thing that makes the extension
 defensible, in exchange for a feature nobody has asked for. It would also have
 to be disclosed in the privacy policy and re-reviewed by Google, whose Limited
 Use terms currently permit this design precisely because there is no server.
