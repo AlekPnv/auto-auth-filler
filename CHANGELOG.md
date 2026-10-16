@@ -5,6 +5,34 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.11.0] - 2026-10-16
+
+### Added
+
+- **A light theme for the popup and the settings page.** Both were dark whatever the system preference said, so a light desktop got a dark popup. Both follow `prefers-color-scheme` now.
+
+  There is deliberately no theme toggle inside the extension. The popup is open for a few seconds at a time, and a toggle would mean a stored setting, a migration and another row on the settings page in exchange for very little. The website keeps its toggle, because a visitor may genuinely want to read it against their system.
+
+### Changed
+
+- **A new icon.** Three rounded cells with the last one filled and a caret cut into it, which is what a one-time-code field looks like. The padlock it replaces is what every security product uses, and it said "security" rather than saying what this does.
+
+  The 16px icon is two cells rather than three, drawn on whole pixels. Sixteen pixels leaves fourteen usable, and three cells across that means sub-pixel gaps that blur into a single grey block at exactly the size where the icon most needs to be recognisable. The 48 and 128 carry a plate, because a store listing shows them on a white card where a transparent mark of thin shapes reads as unfinished.
+
+  `tools/make-icons.py` regenerates all four sizes, and `tools/make-og.py` the share card. An asset nobody can rebuild rots the first time the palette moves.
+
+- **One palette across the website and the extension.** The accent moves from blue to indigo and the neutrals warm up, but the change that matters is that the popup, the settings page and the overlay stop carrying their own hand-typed copies. Eighty-eight hardcoded colours across three files became tokens.
+
+  Every text and interactive pair was computed against WCAG rather than judged by eye. The light "ok" green failed by 0.01 against the raised surface, so the green is darker than planned instead of the floor being rounded down. The border token split in two: a hairline between two cards owes nothing, while an input's edge is a control boundary under 1.4.11 and owes 3:1.
+
+  The palette is defined in four places because a hosted site, a packaged extension and a stylesheet injected into other people's pages cannot share a file without a build step, and this project does not have one on purpose. `test/design.test.js` is what keeps them in step. It found its first drift on the first run.
+
+- **The interface is no longer set in a monospace face.** Headings, the wordmark and the table headers were mono, with uppercase letter-spaced column heads, which reads as a terminal. Mono stays for codes, field names and scope strings, where characters may have to be compared one at a time.
+
+### Fixed
+
+- **The overlay could have collided with the pages it appears on.** Its tokens are declared on its own element rather than on `:root`, so a host page using the same names cannot bleed in or be clobbered. That was already true and is now enforced by a test instead of a comment.
+
 ## [3.10.4] - 2026-10-16
 
 ### Fixed
