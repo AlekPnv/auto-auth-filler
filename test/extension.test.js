@@ -420,3 +420,96 @@ test("hyphens do not let ordinary text through", async (t) => {
     });
   }
 });
+
+test("a message with no code in it yields no code", async (t) => {
+  // Reported on namecheap.com. A password reset mail carries no one-time code
+  // at all, yet the extension offered one: the catch-all pattern matched the
+  // account's user name and the overlay presented it as the code to type.
+  //
+  // Returning nothing is the correct answer here. A wrong code is worse than
+  // no code, because the user types it, the site rejects it, and the next
+  // lookup is now racing a lockout counter.
+  const resetMail = [
+    "Account Password Reset",
+    "Namecheap.com Password Reset",
+    "Dear Alek,",
+    "To reset the password to your account, click the link below:",
+    "https://www.example.com/resetpassword.aspx?token=z2ee59f8b123d1368bef8a6d4b2864d66",
+    "For your information:",
+    "User Name : Zortu9K",
+    "Time of Request : Friday, 16 October 2026",
+    "IP Address : 45.65.121.143",
+  ].join("\n");
+
+  await t.test("the user name is not offered as a code", () => {
+    assert.strictEqual(bg.extractOTP(resetMail), null);
+  });
+
+  await t.test("nor is it offered when a field length is known", () => {
+    assert.strictEqual(bg.extractOTP(resetMail, 7), null);
+  });
+});
+
+test("a code is found even when markup separates it from its label", async (t) => {
+  // Also namecheap.com, the mail that actually carried the code. The label and
+  // the code are in different table cells, so the gap between them holds a
+  // newline and a pipe. The labelled patterns gave up, and the fallback then
+  // matched the Gecko build date out of the User-Agent line instead.
+  const verifyMail = [
+    "Your confirmation code",
+    "Sign-in from unauthorized device detected",
+    " Namecheap",
+    "| # Verification needed Please confirm your sign-in request |",
+    "| - | Account: Zortu9K |",
+    "| - | Device: Mozilla 5.0 (Windows NT 10.0 Win64 x64 rv 158.0) Gecko 20100101 Firefox 158.0 |",
+    "",
+    "To verify your account is safe, please use the following code to enable",
+    "your new device - it will expire in 30 minutes:",
+    "",
+    "| 7b3ca2 |",
+  ].join("\n");
+
+  await t.test("the real code is returned", () => {
+    assert.strictEqual(bg.extractOTP(verifyMail), "7b3ca2");
+  });
+
+  await t.test("the browser build number is never the answer", () => {
+    assert.notStrictEqual(bg.extractOTP(verifyMail), "20100101");
+  });
+
+  await t.test("the account name is never the answer", () => {
+    assert.notStrictEqual(bg.extractOTP(verifyMail), "Zortu9K");
+  });
+
+  await t.test("nor is the brand name sitting alone on its own line", () => {
+    // These mails open with the sender name alone under the subject, one line
+    // below the words "confirmation code".
+    assert.notStrictEqual(bg.extractOTP(verifyMail), "Namecheap");
+  });
+});
+
+test("the manual lookup receives the same page context as the automatic one", () => {
+  // The popup asked for a code with nothing but maxOTPAge. With no siteHost the
+  // site check inside findLatestOTP short-circuits to true for every message,
+  // so the popup presented whatever was newest regardless of who sent it, while
+  // the overlay on the same page was filtering properly. Reported on
+  // namecheap.com.
+  //
+  // This reads the sources as text because the bug is an omission at a call
+  // site. There is nothing to assert about a value that was never passed.
+  const bgSrc = fs.readFileSync(path.join(ROOT, "background.js"), "utf8");
+  const start = bgSrc.indexOf('msg.type === "MANUAL_GET_OTP"');
+  assert.notStrictEqual(start, -1, "the MANUAL_GET_OTP handler has gone");
+  const handler = bgSrc.slice(start, bgSrc.indexOf("return true;", start));
+  assert.ok(
+    handler.includes("siteHost: msg.siteHost"),
+    "MANUAL_GET_OTP must forward siteHost into the lookup",
+  );
+
+  const popupSrc = fs.readFileSync(path.join(ROOT, "popup.js"), "utf8");
+  assert.ok(popupSrc.includes("siteHost"), "the popup must send the active tab's host");
+  assert.ok(
+    popupSrc.includes("matchesSite"),
+    "the popup must say when a code came from a different sender",
+  );
+});

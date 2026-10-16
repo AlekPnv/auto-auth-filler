@@ -30,6 +30,7 @@ const AAF_STRINGS = {
     "popup.unknownError": "unknown error",
     "popup.error": "Error: {message}",
     "popup.minutesAgo": "{n} minute(s) ago",
+    "popup.fromElsewhere": "⚠ From {sender}, not this site",
 
     // Overlay, shown on the page itself
     "overlay.searching": "Searching Gmail for code…",
@@ -94,6 +95,7 @@ const AAF_STRINGS = {
     "popup.signedIn": "Bei Gmail angemeldet",
     "popup.notSignedIn": "Nicht angemeldet",
     "popup.fetch": "Code holen",
+    "popup.fromElsewhere": "⚠ Von {sender}, nicht von dieser Seite",
     "popup.copy": "Kopieren",
     "popup.copied": "Kopiert",
     "popup.signIn": "Mit Google anmelden",

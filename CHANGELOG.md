@@ -5,6 +5,24 @@ All notable changes to Auto Auth Filler are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.4] - 2026-10-16
+
+### Fixed
+
+- **A mail with no code in it was answered with the account's user name.** Reported on namecheap.com. A password reset mail carries no one-time code at all, and the extension offered the `User Name` line as the code to type.
+
+  The last two extraction patterns match on shape alone: any six to eight digits, or any four to eight character token holding both a letter and a digit, anywhere in the message. Neither required a code label nearby, so a user name, an account handle, an IP address and a browser build number all qualified equally.
+
+  Those two now refuse a match that is introduced by an identifier: user name, account, IP address, or a User-Agent marker such as Gecko or Firefox. The refusal is deliberately limited to them. A labelled pattern already carries its own evidence, and "your account verification code" has to keep working.
+
+  Returning nothing is the correct answer for a mail with no code. A wrong code is worse than no code, because it gets typed, the site rejects it, and the next attempt is racing a lockout counter.
+
+- **The real code was missed when it sat in its own table cell.** The Namecheap sign-in mail puts the code a blank line below its label and inside a table: "please use the following code to enable your new device:" and then the code alone in a cell. Every labelled pattern looks either on the label's own line or on the one directly after it, so the gap defeated all of them and the bare-digits fallback matched the Gecko build date out of the User-Agent line instead.
+
+  There is now a pattern for a code standing alone on a line a few lines below its label, with table and markdown punctuation allowed around it. Standing alone is what makes it safe, since prose on that line cannot match. It requires a digit: reaching several lines past the label is already weak evidence, and without that the sender's brand name, which these mails print alone under the subject, read as the code.
+
+- **The popup searched with no idea which site you were on.** The overlay passes the page hostname, the field's maximum length and a cutoff time into the lookup. The popup passed none of them, so the site check short-circuited to true for every message and the newest code won whoever had sent it. The popup now reads the active tab's hostname and sends it, and it names the sender when a code came from elsewhere, which it previously had no way to express.
+
 ## [3.10.3] - 2026-09-09
 
 ### Fixed

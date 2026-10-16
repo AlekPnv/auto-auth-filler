@@ -23,6 +23,25 @@ const btnLogin      = $("btn-login");
 const btnLogout     = $("btn-logout");
 const btnOptions    = $("btn-options");
 
+// The popup has no page of its own, so the site to compare a message against
+// has to come from the active tab. Without it the site check inside
+// findLatestOTP short-circuits to true for every message, and a code from one
+// service gets presented on another's page. The overlay never had this
+// problem because a content script already knows where it is running.
+async function activeTabHost() {
+  try {
+    // Firefox implements chrome.* with callbacks rather than promises.
+    const tabs = await new Promise((resolve) =>
+      chrome.tabs.query({ active: true, currentWindow: true }, resolve));
+    const url = tabs?.[0]?.url;
+    // Privileged pages report no URL even with the tabs permission, and
+    // there is nothing worth matching against on one anyway.
+    return url ? new URL(url).hostname : "";
+  } catch {
+    return "";
+  }
+}
+
 let lastCode = null;
 let isAuthed = false;
 
@@ -51,11 +70,21 @@ async function fetchCode() {
   clearResult();
 
   try {
-    const result = await sendMsg({ type: "MANUAL_GET_OTP" });
+    const result = await sendMsg({
+      type: "MANUAL_GET_OTP",
+      siteHost: await activeTabHost(),
+    });
 
     if (result.otp) {
       lastCode = result.otp;
-      resultSubject.textContent = result.subject ?? "";
+      // Name the sender when the message did not come from this site. The
+      // background already works this out; the popup used to discard it and
+      // show a foreign code as though it belonged here.
+      const fromElsewhere = result.matchesSite === false;
+      resultSubject.classList.toggle("warn", fromElsewhere);
+      resultSubject.textContent = fromElsewhere
+        ? T("popup.fromElsewhere", { sender: result.sender || result.subject || "" })
+        : (result.subject ?? "");
       resultCode.textContent = result.otp;
       resultAge.textContent = result.ageMins != null ? T("popup.minutesAgo", { n: result.ageMins }) : "";
       resultSection.hidden = false;

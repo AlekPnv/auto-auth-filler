@@ -512,6 +512,16 @@ const HYPHENATED_CODE = "([A-Za-z0-9][A-Za-z0-9-]{2,8}[A-Za-z0-9])";
 // [A-Za-z0-9]{6,8} also matches any ordinary word, so the relaxation is tied to
 // layout rather than to spelling or capitalisation. Capitalisation would be the
 // wrong test, since a lowercase code is equally valid.
+// Words that introduce an identifier rather than a code. A user name, an
+// account handle, a browser build number or an IP address all have the shape of
+// a code and none of them is one.
+//
+// Checked only against the text in front of an unlabelled match. A labelled
+// pattern already carries its own evidence, and "your account verification
+// code" has to keep working.
+const NOT_A_CODE =
+  /(?:user\s*name|username|account|benutzername|kontoname|gecko|firefox|chrome|safari|webkit|mozilla|version|build|ip\s*address)\s*[:=#]?[ \t|*>_-]*$/i;
+
 function otpPatterns() {
   return [
     {
@@ -537,6 +547,28 @@ function otpPatterns() {
       lettersOnlyOk: true,
     },
     {
+      // A label, then the code alone on a later line, with table or markdown
+      // punctuation allowed around it. Namecheap presents it this way: "please
+      // use the following code to enable your new device:" and then, two lines
+      // down, the code by itself in a cell. The pattern above only inspects the
+      // line directly after the label, so the gap defeated it and the bare
+      // digits fallback matched a build number out of a User-Agent instead.
+      //
+      // Standing alone on its line is what keeps this safe: prose on that line
+      // cannot match, because anything but the code and punctuation around it
+      // fails the anchors.
+      re: new RegExp(
+        "(?:" + SECURITY_LABEL + "|" + GENERIC_LABEL + ")" +
+        "[^\\n]{0,80}(?:\\n[^\\n]{0,80}){0,3}?\\n[ \\t|*>_-]*" +
+        HYPHENATED_CODE + "[ \\t|*>_-]*(?=\\n|$)",
+        "gi",
+      ),
+      // A digit is required. Reaching several lines past the label is
+      // already weak evidence, and without this the brand name alone on its
+      // own line, which is how these mails open, reads as the code.
+      lettersOnlyOk: false,
+    },
+    {
       // Any label, with up to four words in between. A digit is required here.
       //
       // The old separator class excluded letters, so "Ihr Einmalcode lautet
@@ -556,7 +588,7 @@ function otpPatterns() {
       lettersOnlyOk: false,
       requireMixed: true,
     },
-    { re: /\b([0-9]{6,8})\b/g, lettersOnlyOk: false },
+    { re: /\b([0-9]{6,8})\b/g, lettersOnlyOk: false, unlabelled: true },
     {
       // Unlabelled alphanumeric, down to four characters to reach Steam Guard's
       // five. Requiring both a letter and a digit is what makes that safe: it
@@ -565,6 +597,7 @@ function otpPatterns() {
       re: /(?<![A-Za-z0-9])([A-Za-z0-9]{4,8})(?![A-Za-z0-9])/gi,
       lettersOnlyOk: false,
       requireMixed: true,
+      unlabelled: true,
     },
   ];
 }
@@ -656,6 +689,14 @@ function extractOTP(text, maxLen, exactLength) {
       // but not all, and upper-casing a lowercase code would break those.
       const code = raw.replace(/-/g, "");
       if (!looksLikeCode(code, pattern)) continue;
+
+      // An unlabelled pattern matches on shape alone, so the words in front of
+      // it are the only evidence there is. Reported on namecheap.com: a password
+      // reset mail carries no code at all, and the account's user name was
+      // offered as one. Filling an identifier into a code field submits
+      // something that was never a code.
+      if (pattern.unlabelled &&
+          NOT_A_CODE.test(clean.slice(Math.max(0, m.index - 40), m.index))) continue;
 
       // A split-digit widget has one box per character, so its box count is an
       // exact requirement rather than a preference. Filling a six-character
@@ -838,7 +879,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "MANUAL_GET_OTP") {
     if (!acquireFetchLock()) { sendResponse({ status: "busy" }); return false; }
-    getFromLocal(["maxOTPAge"]).then((settings) => findLatestOTP(settings))
+    getFromLocal(["maxOTPAge"])
+      .then((settings) => findLatestOTP({ ...settings, siteHost: msg.siteHost }))
       .then((result) => { releaseFetchLock(); sendResponse(result); })
       .catch((err) => { releaseFetchLock(); sendResponse({ otp: null, error: errorText(err) }); });
     return true;
