@@ -214,7 +214,8 @@ test("the dark palette defines every variable the light one themes", () => {
   const attrDark = varsIn(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\}/);
 
   // Fonts and sizes are the same in both themes and are deliberately not repeated.
-  const NOT_THEMED = ["--mono", "--sans", "--measure", "--wide", "--radius"];
+  const NOT_THEMED = ["--mono", "--sans", "--measure", "--wide", "--radius",
+                    "--radius-sm"];
   const themed = light.filter((v) => !NOT_THEMED.includes(v));
 
   assert.deepStrictEqual(
