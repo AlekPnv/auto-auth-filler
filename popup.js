@@ -93,9 +93,15 @@ async function fetchCode() {
     } else {
       lastCode = null;
       btnCopy.hidden = true;
+      // The lookup already works out why it found nothing. The overlay has
+      // always shown that; the popup threw it away and said "no code", which
+      // is the difference between "no mail arrived" and "a code arrived that
+      // does not fit this field".
       noResult.textContent = result.error
         ? T("popup.error", { message: result.error })
-        : T("overlay.noCode");
+        : result.reason
+          ? T("popup.noCodeReason", { reason: result.reason })
+          : T("overlay.noCode");
       noResultSec.hidden = false;
       resultSection.hidden = true;
     }

@@ -30,6 +30,7 @@ const AAF_STRINGS = {
     "popup.unknownError": "unknown error",
     "popup.error": "Error: {message}",
     "popup.minutesAgo": "{n} minute(s) ago",
+    "popup.noCodeReason": "No code found. {reason}.",
     "popup.fromElsewhere": "⚠ From {sender}, not this site",
 
     // Overlay, shown on the page itself
@@ -47,6 +48,10 @@ const AAF_STRINGS = {
     "overlay.copyTitle": "Copy to clipboard",
     "overlay.filled": "Filled",
     "overlay.close": "Close",
+    "overlay.notThisOne": "Not this one",
+    "overlay.copy": "Copy",
+    "overlay.copied": "Copied",
+    "overlay.copyFailed": "Failed",
     "overlay.minutesAgo": "{n}m ago",
 
     // Settings page
@@ -96,6 +101,7 @@ const AAF_STRINGS = {
     "popup.notSignedIn": "Nicht angemeldet",
     "popup.fetch": "Code holen",
     "popup.fromElsewhere": "⚠ Von {sender}, nicht von dieser Seite",
+    "popup.noCodeReason": "Kein Code gefunden. {reason}.",
     "popup.copy": "Kopieren",
     "popup.copied": "Kopiert",
     "popup.signIn": "Mit Google anmelden",
@@ -120,6 +126,10 @@ const AAF_STRINGS = {
     "overlay.copyTitle": "In die Zwischenablage kopieren",
     "overlay.filled": "Eingefügt",
     "overlay.close": "Schließen",
+    "overlay.notThisOne": "Nicht dieser",
+    "overlay.copy": "Kopieren",
+    "overlay.copied": "Kopiert",
+    "overlay.copyFailed": "Fehler",
     "overlay.minutesAgo": "vor {n} Min.",
 
     // Settings page

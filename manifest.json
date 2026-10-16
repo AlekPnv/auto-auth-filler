@@ -4,6 +4,12 @@
   "version": "3.11.0",
   "description": "Universally detects and fills OTP/2FA codes from Gmail on any website.",
   "homepage_url": "https://autoauthfiller.com",
+  "commands": {
+    "fetch-code": {
+      "suggested_key": { "default": "Alt+Shift+V" },
+      "description": "Fetch the latest verification code"
+    }
+  },
   "permissions": [
     "identity",
     "storage",

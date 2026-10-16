@@ -755,6 +755,12 @@ async function findLatestOTP(settings = {}) {
   const pageTokens = siteTokens(settings.siteHost);
   let unmatched = null;
 
+  // Codes the user has already rejected on this page. Without this, "not this
+  // one" would hand back the same code: it is still the newest thing that
+  // matches, so every tiebreak still picks it.
+  const skip = new Set(settings.skip ?? []);
+  let skipped = 0;
+
   // Why nothing came back is worth reporting. From outside, mail that never
   // arrived, mail with no code in it and a code that does not fit the field
   // all look identical, and each needs a different fix.
@@ -787,6 +793,10 @@ async function findLatestOTP(settings = {}) {
     examined++;
 
     const otp = extractOTP(combined, settings.inputMaxLen, settings.exactLength);
+    if (otp && skip.has(otp)) {
+      skipped++;
+      continue;
+    }
     if (!otp) {
       // Running it again without the length requirement separates "there is
       // no code here" from "the code does not fit these boxes".
@@ -813,6 +823,7 @@ async function findLatestOTP(settings = {}) {
   if (unmatched) return unmatched;
 
   let reason = `${examined} message(s) checked, no code found in them`;
+  if (skipped > 0) reason = `${skipped} code(s) checked already, nothing else found`;
   if (examined === 0) reason = "mail matched the search but all of it was too old";
   else if (wrongLength) reason = `a code was found but it does not fit ${settings.exactLength} boxes`;
 
@@ -849,6 +860,18 @@ function errorText(err) {
   return err?.message ?? String(err);
 }
 
+// The keyboard shortcut. It exists for the page where nothing appeared: the
+// field scored below the threshold, or the overlay was dismissed and the
+// cooldown has not run out. Someone pressing the key is better evidence that a
+// code is wanted than any score this extension computes.
+chrome.commands?.onCommand.addListener((command) => {
+  if (command !== "fetch-code") return;
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tabId = tabs?.[0]?.id;
+    if (tabId) tabsSendMessage(tabId, { type: "FORCE_LOOKUP" });
+  });
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GET_OTP") {
     if (!acquireFetchLock()) {
@@ -864,6 +887,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         exactLength: msg.exactLength,
         notBefore: msg.notBefore,
         siteHost: msg.siteHost,
+        skip: msg.skip,
       });
     }).then((result) => {
       releaseFetchLock();

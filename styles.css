@@ -79,9 +79,11 @@
 }
 
 #aaf-overlay .aaf-icon {
-  font-size: 16px;
+  display: inline-flex;
+  color: var(--accent);
   flex-shrink: 0;
 }
+#aaf-overlay .aaf-icon svg { width: 18px; height: 18px; display: block; }
 
 #aaf-overlay .aaf-status {
   flex: 1;
@@ -140,6 +142,14 @@
   background: var(--accent);
   color: var(--on-accent);
 }
+
+#aaf-overlay .aaf-next {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border-strong);
+  padding: 4px 9px;
+}
+#aaf-overlay .aaf-next:hover { color: var(--text); }
 
 #aaf-overlay .aaf-copy {
   background: var(--raised);

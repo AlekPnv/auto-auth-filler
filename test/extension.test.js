@@ -534,3 +534,113 @@ test("every icon the manifest declares exists at the size it claims", () => {
       `${file} is ${png.readUInt32BE(20)}px tall but declared as ${size}`);
   }
 });
+
+test("a code the user rejected is not offered again", async (t) => {
+  // "Not this one" is the only way out when two services mail inside the same
+  // minute, or when one service sends a password reset and a sign-in code
+  // together. Without a skip list the next lookup hands back the same code,
+  // because it is still the newest thing that matches and every tiebreak still
+  // lands on it.
+  const minute = 60000;
+
+  const message = (id, agoMs, from, code) => ({
+    id,
+    internalDate: String(Date.now() - agoMs),
+    snippet: "",
+    payload: {
+      headers: [
+        { name: "Subject", value: "Your verification code" },
+        { name: "From", value: from },
+      ],
+      mimeType: "text/plain",
+      body: { data: Buffer.from(`Your verification code: ${code}`).toString("base64url") },
+    },
+  });
+
+  function withMessages(messages) {
+    const instance = loadBackground();
+    instance.call(`
+      fetchGmail = async (endpoint) => {
+        if (endpoint.startsWith("messages?")) {
+          return { messages: ${JSON.stringify(messages.map((m) => ({ id: m.id })))} };
+        }
+        const id = endpoint.split("/")[1];
+        return ${JSON.stringify(Object.fromEntries(messages.map((m) => [m.id, m])))}[id];
+      };
+      getAuthToken = async () => "test-token";
+    `);
+    return instance;
+  }
+
+  const newer = message("newer", 10000, "Example <no-reply@example.com>", "111111");
+  const older = message("older", 2 * minute, "Example <no-reply@example.com>", "222222");
+
+  await t.test("the newest wins when nothing is rejected", async () => {
+    const bgx = withMessages([newer, older]);
+    const result = await bgx.call('findLatestOTP({ maxOTPAge: 10, siteHost: "example.com" })');
+    assert.strictEqual(result.otp, "111111");
+  });
+
+  await t.test("rejecting it moves on to the next one", async () => {
+    const bgx = withMessages([newer, older]);
+    const result = await bgx.call(
+      'findLatestOTP({ maxOTPAge: 10, siteHost: "example.com", skip: ["111111"] })',
+    );
+    assert.strictEqual(result.otp, "222222");
+  });
+
+  await t.test("rejecting every candidate says so rather than going quiet", async () => {
+    const bgx = withMessages([newer, older]);
+    const result = await bgx.call(
+      'findLatestOTP({ maxOTPAge: 10, siteHost: "example.com", skip: ["111111", "222222"] })',
+    );
+    assert.strictEqual(result.otp, null);
+    assert.match(result.reason, /already/, "the reason should say they were already checked");
+  });
+});
+
+test("the manual lookup path reaches the user", async (t) => {
+  await t.test("a keyboard shortcut is declared", () => {
+    // The shortcut is the answer to "it did nothing on this page": it skips the
+    // score threshold and the cooldown, both of which can silently decide there
+    // is nothing to do.
+    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
+    assert.ok(manifest.commands, "no commands declared in the manifest");
+    assert.ok(manifest.commands["fetch-code"], "the fetch-code command is missing");
+    assert.ok(
+      manifest.commands["fetch-code"].description,
+      "a command with no description shows up blank in the browser's shortcut list",
+    );
+  });
+
+  await t.test("the background listens for it and the content script answers", () => {
+    const bg = fs.readFileSync(path.join(ROOT, "background.js"), "utf8");
+    const content = fs.readFileSync(path.join(ROOT, "content.js"), "utf8");
+    assert.ok(bg.includes("onCommand"), "nothing listens for the command");
+    assert.ok(bg.includes("FORCE_LOOKUP"), "the command sends no message");
+    assert.ok(content.includes("FORCE_LOOKUP"), "the content script ignores the message");
+    assert.ok(content.includes("function forceLookup"), "forceLookup is missing");
+  });
+
+  await t.test("the popup explains why it found nothing", () => {
+    // findLatestOTP works out a reason every time it comes back empty. The
+    // overlay has always shown it; the popup used to drop it and say "no code".
+    const popup = fs.readFileSync(path.join(ROOT, "popup.js"), "utf8");
+    assert.ok(popup.includes("result.reason"), "the popup still discards the reason");
+    assert.ok(popup.includes("popup.noCodeReason"), "no string for it");
+  });
+});
+
+test("the extension interface carries no emoji", async (t) => {
+  // The overlay used a padlock emoji as its icon, which is both a character in
+  // the interface rather than a drawing and the exact shape the branding just
+  // stopped using. The site has been checked for this since the Google
+  // branding review; the extension never was.
+  for (const file of ["content.js", "popup.html", "options.html", "styles.css"]) {
+    await t.test(file, () => {
+      const text = fs.readFileSync(path.join(ROOT, file), "utf8");
+      const found = [...text.matchAll(/[\u{1F300}-\u{1FAFF}]/gu)].map((m) => m[0]);
+      assert.deepStrictEqual(found, [], `${file} contains emoji: ${found.join(" ")}`);
+    });
+  }
+});

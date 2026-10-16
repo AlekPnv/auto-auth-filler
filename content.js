@@ -327,7 +327,7 @@ function createOverlay(inputs) {
   overlay.setAttribute("aria-live", "polite");
   overlay.innerHTML = `
     <div class="aaf-inner">
-      <span class="aaf-icon">🔐</span>
+      <span class="aaf-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" focusable="false"><rect x="1.4" y="8.5" width="6" height="7" rx="1.5" opacity=".55"/><rect x="9" y="8.5" width="6" height="7" rx="1.5" opacity=".55"/><rect x="16.6" y="8.5" width="6" height="7" rx="1.5"/></svg></span>
       <span class="aaf-status">Searching Gmail for code…</span>
       <div class="aaf-actions" hidden></div>
       <button class="aaf-close" data-i18n-label="overlay.close" aria-label="Close">✕</button>
@@ -445,10 +445,26 @@ async function setOverlayResult(otp, subject, ageMins, error, details = {}) {
   fillBtn.textContent = "↵ " + T("overlay.fillSubmit");
   fillBtn.addEventListener("click", () => fillOTP(otp));
 
+  // The lookup ranks every candidate and returns one. When several services
+  // mail you inside the same minute, or one service sends a password reset and
+  // a sign-in code together, the ranking picks wrong and the user is the only
+  // one who can tell. This hands that decision back rather than leaving them to
+  // open the inbox they installed this to avoid.
+  const nextBtn = document.createElement("button");
+  nextBtn.className = "aaf-btn aaf-next";
+  nextBtn.title = T("overlay.notThisOne");
+  nextBtn.textContent = T("overlay.notThisOne");
+  nextBtn.addEventListener("click", () => {
+    if (session) session.rejected.push(otp);
+    rememberAttempt(otp);
+    setOverlaySearching();
+    requestOTP();
+  });
+
   const copyBtn = document.createElement("button");
   copyBtn.className = "aaf-btn aaf-copy";
   copyBtn.title = T("overlay.copyTitle");
-  copyBtn.textContent = "📋";
+  copyBtn.textContent = T("overlay.copy");
   copyBtn.addEventListener("click", () => copyOTP(otp));
 
   const codeEl = document.createElement("code");
@@ -638,14 +654,14 @@ function copyOTP(otp) {
     .writeText(otp)
     .then(() => {
       if (!copyBtn) return;
-      copyBtn.textContent = "✅";
-      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = "📋"; }, 1500);
+      copyBtn.textContent = T("overlay.copied");
+      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = T("overlay.copy"); }, 1500);
     })
     .catch(() => {
       // Some pages deny clipboard access. Say so rather than appearing to work.
       if (!copyBtn) return;
-      copyBtn.textContent = "✕";
-      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = "📋"; }, 1500);
+      copyBtn.textContent = T("overlay.copyFailed");
+      setTimeout(() => { if (copyBtn.isConnected) copyBtn.textContent = T("overlay.copy"); }, 1500);
     });
 }
 
@@ -692,6 +708,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     clearTimeout(searchTimeout);
     setOverlayResult(msg.otp, msg.subject, msg.ageMins, msg.error, msg);
   }
+  if (msg.type === "FORCE_LOOKUP") forceLookup();
   if (msg.type === "AUTH_READY") {
     if (overlay) {
       setOverlaySearching();
@@ -749,6 +766,9 @@ async function requestOTP() {
     // Lets the worker tell whether a message came from this service at all.
     siteHost: window.location.hostname,
     notBefore: session?.notBefore ?? 0,
+    // Codes rejected by hand on this page, so "not this one" moves on instead
+    // of being handed the same answer again.
+    skip: session?.rejected ?? [],
   });
 
   // The worker refuses overlapping fetches. Back off and ask again rather than
@@ -798,6 +818,37 @@ function trace(message) {
   console.debug("[Auto Auth Filler] " + message);
 }
 
+// Everything init() does, minus the gates. The relevance check still applies,
+// because a domain on the blocklist was silenced deliberately.
+async function forceLookup() {
+  if (!(await isPageRelevant())) {
+    trace("shortcut pressed on a blocked domain, ignoring");
+    return;
+  }
+
+  removeOverlay();
+  session = null;
+  lastSearchStartedAt = 0;
+  await loadAttempts();
+
+  const inputs = findOTPInputs();
+  if (!inputs || inputs.length === 0) {
+    trace("shortcut pressed, but no code field was found on this page");
+    return;
+  }
+
+  lastSearchStartedAt = Date.now();
+  codeSource = "";
+  session = {
+    notBefore: Date.now() - CODE_LOOKBACK_MS,
+    deadline: Date.now() + POLL_WINDOW_MS,
+    acceptedAnyAge: false,
+    rejected: [],
+  };
+  createOverlay(inputs);
+  requestOTP();
+}
+
 async function init() {
   if (overlay || session) return;
   if (!(await isPageRelevant())) return;
@@ -819,6 +870,7 @@ async function init() {
     notBefore: Date.now() - CODE_LOOKBACK_MS,
     deadline: Date.now() + POLL_WINDOW_MS,
     acceptedAnyAge: false,
+    rejected: [],
   };
 
   createOverlay(inputs);
