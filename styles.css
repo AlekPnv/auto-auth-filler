@@ -1,5 +1,47 @@
 /* Auto Auth Filler overlay styles (scoped to #aaf-overlay) */
 
+/* Tokens are declared on the overlay itself, never on :root. This file is
+   injected into other people's pages, and a host page declaring the same
+   names would otherwise bleed in or get clobbered. Same names and values as
+   site/style.css and popup.html; a test fails if they drift apart. */
+#aaf-overlay {
+  --bg: #fbfaf9;
+  --surface: #ffffff;
+  --raised: #f4f2ef;
+  --border: #e4e0db;
+  --border-strong: #d6d1ca;
+  --field-border: #8d867e;
+  --text: #1c1a17;
+  --muted: #6b6560;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --on-accent: #ffffff;
+  --knob: #ffffff;
+  --ok: #157a3a;
+  --warn: #b4232a;
+  --radius: 10px;
+  --radius-sm: 7px;
+}
+
+@media (prefers-color-scheme: dark) {
+  #aaf-overlay {
+    --bg: #141317;
+    --surface: #1c1a21;
+    --raised: #26232d;
+    --border: #35313d;
+    --border-strong: #443f50;
+    --field-border: #6b6577;
+    --text: #ece9f0;
+    --muted: #a39eae;
+    --accent: #8b86ff;
+    --accent-strong: #a5a1ff;
+    --on-accent: #15131c;
+    --knob: #f1eef5;
+    --ok: #56d98a;
+    --warn: #ff8d9b;
+  }
+}
+
 #aaf-overlay {
   all: initial;
   position: fixed;
@@ -25,10 +67,10 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  background: #1e1e2e;
-  color: #cdd6f4;
-  border: 1px solid #45475a;
-  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
   padding: 10px 14px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -47,7 +89,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #cdd6f4;
+  color: var(--text);
 }
 
 #aaf-overlay .aaf-actions {
@@ -68,8 +110,8 @@
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #a6e3a1;
-  background: #313244;
+  color: var(--ok);
+  background: var(--raised);
   border-radius: 6px;
   padding: 2px 8px;
   margin-left: auto;
@@ -82,7 +124,7 @@
   align-items: center;
   gap: 4px;
   padding: 5px 12px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
@@ -95,13 +137,13 @@
 #aaf-overlay .aaf-btn:active { opacity: 0.65; }
 
 #aaf-overlay .aaf-fill {
-  background: #89b4fa;
-  color: #1e1e2e;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 #aaf-overlay .aaf-copy {
-  background: #45475a;
-  color: #cdd6f4;
+  background: var(--raised);
+  color: var(--text);
   padding: 5px 9px;
 }
 
@@ -111,7 +153,7 @@
   top: 6px;
   right: 8px;
   font-size: 13px;
-  color: #585b70;
+  color: var(--muted);
   cursor: pointer;
   line-height: 1;
   font-family: inherit;
@@ -120,11 +162,10 @@
   transition: color 0.15s;
 }
 
-#aaf-overlay .aaf-close:hover { color: #f38ba8; }
+#aaf-overlay .aaf-close:hover { color: var(--warn); }
 
 @media (prefers-color-scheme: light) {
   #aaf-overlay .aaf-inner {
-    border-color: #313244;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 28px rgba(28, 26, 23, 0.14);
   }
 }

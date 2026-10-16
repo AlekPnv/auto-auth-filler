@@ -20,6 +20,7 @@
   --accent-strong: #4338ca;
   --on-accent: #ffffff;
   --ok: #157a3a;
+  --knob: #ffffff;
   --warn: #b4232a;
   --mono: ui-monospace, "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -48,6 +49,7 @@
     --accent-strong: #a5a1ff;
     --on-accent: #15131c;
     --ok: #56d98a;
+    --knob: #f1eef5;
     --warn: #ff8d9b;
   }
 }
@@ -65,6 +67,7 @@
     --accent-strong: #a5a1ff;
     --on-accent: #15131c;
     --ok: #56d98a;
+    --knob: #f1eef5;
     --warn: #ff8d9b;
 }
 
