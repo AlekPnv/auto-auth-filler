@@ -141,6 +141,38 @@ test("the overlay keeps its tokens off :root", () => {
   }
 });
 
+test("the three extension surfaces agree on their radii", () => {
+  // The palette test above only looks inside blocks that declare --bg, and the
+  // site keeps its sizes in a separate block so the light-against-dark parity
+  // test has nothing to filter. That put radii out of its reach, and the site's
+  // corners then grew without the extension's.
+  //
+  // The site diverging is deliberate: a 66rem page and a 280px popup are not
+  // the same object. The popup, the settings page and the overlay are one
+  // interface though, so they have to match each other.
+  const EXT = ["popup.html", "options.html", "styles.css"];
+  const seen = new Map();
+
+  for (const file of EXT) {
+    const css = stylesheet(SURFACES.find((s) => s.file === file));
+    for (const decl of css.matchAll(/(--radius(?:-sm)?)\s*:\s*([^;]+);/g)) {
+      const [, token, value] = decl;
+      const prior = seen.get(token);
+      if (!prior) {
+        seen.set(token, { value: value.trim(), file });
+      } else {
+        assert.strictEqual(
+          value.trim(), prior.value,
+          `${token} is ${prior.value} in ${prior.file} but ${value.trim()} in ${file}`,
+        );
+      }
+    }
+  }
+
+  assert.ok(seen.has("--radius"), "no extension surface declares --radius");
+  assert.ok(seen.has("--radius-sm"), "no extension surface declares --radius-sm");
+});
+
 test("the interface face is not the monospace one", async (t) => {
   // Headings, the wordmark and table headers in mono read as a developer tool.
   // Mono earns its place on codes and field names, where the reader may have to

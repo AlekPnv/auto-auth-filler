@@ -96,6 +96,11 @@
 
   --measure: 46rem;
   --wide: 66rem;
+
+  /* Larger than the extension's 10px and 7px, on purpose. A 66rem page and a
+     280px popup are not the same object, and card corners that look generous
+     on one look bloated on the other. The three extension surfaces do have to
+     agree with each other, and test/design.test.js checks that they do. */
   --radius: 14px;
   --radius-sm: 9px;
 }
