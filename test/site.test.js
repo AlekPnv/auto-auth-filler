@@ -206,7 +206,7 @@ test("the dark palette defines every variable the light one themes", () => {
   const varsIn = (re) => {
     const m = css.match(re);
     assert.ok(m, `could not find the block matching ${re}`);
-    return [...m[1].matchAll(/(--[a-z0-9]+)\s*:/g)].map((x) => x[1]).sort();
+    return [...m[1].matchAll(/(--[a-z0-9-]+)\s*:/g)].map((x) => x[1]).sort();
   };
 
   const light = varsIn(/:root\s*\{([\s\S]*?)\}/);
